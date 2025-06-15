@@ -10,11 +10,75 @@
 #include "Logger.h"
 #include "ChessGame.h"
 
-// Funkcja konwertująca współrzędne na notację szachową
-std::string moveToAlgebraic(const Move& move) {
-    std::string from = std::string(1, 'a' + move.fromY) + std::to_string(8 - move.fromX);
-    std::string to = std::string(1, 'a' + move.toY) + std::to_string(8 - move.toX);
-    return from + "-" + to;
+//// Funkcja konwertująca współrzędne na notację szachową
+//std::string moveToAlgebraic(const ChessGame& game, const Move& move) {
+//    std::string from = std::string(1, 'a' + move.fromY) + std::to_string(8 - move.fromX);
+//    std::string to = std::string(1, 'a' + move.toY) + std::to_string(8 - move.toX);
+//    return from + "-" + to;
+//}
+
+std::string moveToAlgebraic(ChessGame& game, const Move& move) {
+    Piece piece = game.getPiece(move.fromX, move.fromY);
+    if (piece == EMPTY_PIECE) return "";
+
+    std::string notation;
+    // Oznacz figurę (oprócz pionka)
+    switch (piece.type) {
+        case KNIGHT: notation += "N"; break;
+        case BISHOP: notation += "B"; break;
+        case ROOK: notation += "R"; break;
+        case QUEEN: notation += "Q"; break;
+        case KING: notation += "K"; break;
+        default: break; // Pionek
+    }
+
+    // Roszada
+    if (piece.type == KING && abs(move.toY - move.fromY) == 2) {
+        return move.toY > move.fromY ? "O-O" : "O-O-O";
+    }
+
+    // Pole początkowe (tylko jeśli potrzebne, uproszczenie)
+    if (piece.type != PAWN) {
+        notation += char('a' + move.fromY);
+        notation += std::to_string(8 - move.fromX);
+    } else if (game.getPiece(move.toX, move.toY) != EMPTY_PIECE || (move.toX == game.getEnPassantTargetX() && move.toY == game.getEnPassantTargetY())) {
+        notation += char('a' + move.fromY);
+    }
+
+    // Bicie
+    if (game.getPiece(move.toX, move.toY) != EMPTY_PIECE || (piece.type == PAWN && move.toX == game.getEnPassantTargetX() && move.toY == game.getEnPassantTargetY())) {
+        notation += "x";
+    }
+
+    // Pole docelowe
+    notation += char('a' + move.toY);
+    notation += std::to_string(8 - move.fromX);
+
+    // Promocja (sprawdzamy po ruchu)
+    bool isPromotion = (piece.type == PAWN && (move.toX == 0 || move.toX == 7));
+    std::string promotionNotation;
+    if (isPromotion) {
+        promotionNotation += "=";
+        switch (game.getPiece(move.toX, move.toY).type) { // Po promocji
+            case QUEEN: promotionNotation += "Q"; break;
+            case ROOK: promotionNotation += "R"; break;
+            case BISHOP: promotionNotation += "B"; break;
+            case KNIGHT: promotionNotation += "N"; break;
+            default: break;
+        }
+    }
+
+    // Sprawdź szach/mat
+    auto state = game.makeTemporaryMove(move);
+    bool isCheck = game.isInCheck(game.getCurrentPlayer());
+    bool isMate = isCheck && game.getAllPossibleMoves(game.getCurrentPlayer()).empty();
+    game.undoMove(state);
+
+    if (isCheck) {
+        notation += isMate ? "#" : "+";
+    }
+
+    return notation + promotionNotation;
 }
 
 int main()
@@ -25,12 +89,42 @@ int main()
     int selectedX = -1, selectedY = -1;
     int depth = 4;
     std::vector<Move> possibleMoves;
+    bool isAnimating = false;
+    bool isWaitingForAIMove = false;
+    sf::Clock animationClock, aiMoveDelayClock;
+    float animationDuration = 0.5f; // 0.5 sekundy
+    Move animatingMove = {0, 0, 0, 0};
+    Piece animationPiece = EMPTY_PIECE;
+    Move lastOpponentMove = {-1, -1, -1, -1};
+    float historyOffset = 0.0f; // Przesunięcie historii
 
     sf::Font font;
     if (!font.loadFromFile("Textures/arial.ttf"))
     {
         std::cout << "Error loading font!" << std::endl;
         return 1;
+    }
+
+    // Etykiety planszy (1-8, a-h)
+    std::vector<sf::Text> boardLabels;
+    for (int i = 0; i < 8; ++i) {
+        // Liczby 1-8
+        sf::Text numLabel;
+        numLabel.setFont(font);
+        numLabel.setString(std::to_string(8 - i));
+        numLabel.setCharacterSize(20);
+        numLabel.setFillColor(sf::Color::Black);
+        numLabel.setPosition(3, i * squareSize);
+        boardLabels.push_back(numLabel);
+
+        // Litery a-h
+        sf::Text letterLabel;
+        letterLabel.setFont(font);
+        letterLabel.setString(std::string(1, char('a' + i)));
+        letterLabel.setCharacterSize(20);
+        letterLabel.setFillColor(sf::Color::Black);
+        letterLabel.setPosition(i * squareSize + squareSize - 12, 777);
+        boardLabels.push_back(letterLabel);
     }
 
     sf::Texture pieceTextures[12];
@@ -40,11 +134,13 @@ int main()
         for (const auto &figure: {"pawn", "knight", "bishop", "rook", "queen", "king"})
         {
             std::string path = std::string("Textures/") + color + "_" + figure + ".png";
-            if (!pieceTextures[texture_index++].loadFromFile(path))
+            if (!pieceTextures[texture_index].loadFromFile(path))
             {
                 std::cerr << "Error loading texture: " << path << std::endl;
                 return 1;
             }
+
+            texture_index++;
         }
     }
 
@@ -82,8 +178,6 @@ int main()
     historyTitle.setFillColor(sf::Color::Black);
     historyTitle.setPosition(820, 10);
 
-    sf::Clock animationClock;
-
     while (window.isOpen())
     {
         sf::Event event;
@@ -105,6 +199,9 @@ int main()
                         selectedX = -1;
                         selectedY = -1;
                         possibleMoves.clear();
+                        isAnimating = false;
+                        lastOpponentMove = {-1, -1, -1, -1};
+                        historyOffset = 0.0f;
                     }
                 }
                 else if (game.isPromotionPending())
@@ -130,81 +227,77 @@ int main()
                         { // Skoczek
                             game.promotePawn(KNIGHT);
                         }
-                        // Po promocji wykonaj ruch AI, jeśli to tura czarnych
-                        if (game.getCurrentPlayer() == BLACK)
+                        if (!game.isGameOver() && game.getCurrentPlayer() == BLACK && !isAnimating)
                         {
-                            Move aiMove = game.getBestMove(depth);
-                            if (aiMove.fromX != -1 && game.isValidMove(aiMove, BLACK))
-                            {
-                                game.makeMove(aiMove);
-                            }
-                            else
-                            {
-                                std::cerr << "AI generated invalid move!" << std::endl;
-                            }
+                            isWaitingForAIMove = true;
+                            aiMoveDelayClock.restart();
                         }
                     }
                 }
-                else if (selectedX == -1 || game.getPiece(selectedX, selectedY) == EMPTY_PIECE)
+                else if (!isAnimating && !isWaitingForAIMove)
                 {
-                    int x = event.mouseButton.y / squareSize;
-                    int y = event.mouseButton.x / squareSize;
-                    if(game.isValidPosition(x, y))
+                    if (selectedX == -1 || game.getPiece(selectedX, selectedY) == EMPTY_PIECE)
                     {
-                        Piece piece = game.getPiece(x, y);
-                        if (piece != EMPTY_PIECE && piece.color == WHITE)
+                        int x = event.mouseButton.y / squareSize;
+                        int y = event.mouseButton.x / squareSize;
+                        if (game.isValidPosition(x, y))
                         {
-                            selectedX = x;
-                            selectedY = y;
-                            possibleMoves.clear();
-                            for (int i = 0; i < 8; i++)
+                            Piece piece = game.getPiece(x, y);
+                            if (piece != EMPTY_PIECE && piece.color == WHITE)
                             {
-                                for (int j = 0; j < 8; j++)
+                                selectedX = x;
+                                selectedY = y;
+                                possibleMoves.clear();
+                                for (int i = 0; i < 8; i++)
                                 {
-                                    Move move = {selectedX, selectedY, i, j};
-                                    if (game.isValidMove(move, WHITE))
+                                    for (int j = 0; j < 8; j++)
                                     {
-                                        possibleMoves.push_back(move);
+                                        Move move = {selectedX, selectedY, i, j};
+                                        if (game.isValidMove(move, WHITE))
+                                        {
+                                            possibleMoves.push_back(move);
+                                        }
                                     }
                                 }
                             }
-                        }
-                        else
-                        {
-                            selectedX = -1;
-                            selectedY = -1;
-                            possibleMoves.clear();
-                        }
-                    }
-                }
-                else
-                {
-                    int x = event.mouseButton.y / squareSize;
-                    int y = event.mouseButton.x / squareSize;
-                    if(game.isValidPosition(x, y))
-                    {
-                        Move move = {selectedX, selectedY, x, y};
-                        if (game.isValidMove(move, WHITE))
-                        {
-                            game.makeMove(move);
-                            selectedX = -1;
-                            selectedY = -1;
-                            possibleMoves.clear();
-
-                            if (!game.isPromotionPending() && !game.isGameOver() && game.getCurrentPlayer() == BLACK)
+                            else
                             {
-                                Move aiMove = game.getBestMove(depth);
-                                if (game.isValidMove(aiMove, BLACK))
-                                {
-                                    game.makeMove(aiMove);
-                                }
+                                selectedX = -1;
+                                selectedY = -1;
+                                possibleMoves.clear();
                             }
                         }
-                        else
+                    }
+                    else
+                    {
+                        int x = event.mouseButton.y / squareSize;
+                        int y = event.mouseButton.x / squareSize;
+                        if(game.isValidPosition(x, y))
                         {
-                            selectedX = -1;
-                            selectedY = -1;
-                            possibleMoves.clear();
+                            Move move = {selectedX, selectedY, x, y};
+                            if (game.isValidMove(move, WHITE))
+                            {
+                                animatingMove = move;
+                                animationPiece = game.getPiece(move.fromX, move.fromY);
+                                isAnimating = true;
+                                animationClock.restart();
+                                game.makeMove(move);
+                                selectedX = -1;
+                                selectedY = -1;
+                                possibleMoves.clear();
+
+                                if (!game.isPromotionPending() && !game.isGameOver() && game.getCurrentPlayer() == BLACK)
+                                {
+                                    isWaitingForAIMove = true;
+                                    aiMoveDelayClock.restart();
+                                }
+                            }
+                            else
+                            {
+                                selectedX = -1;
+                                selectedY = -1;
+                                possibleMoves.clear();
+                            }
                         }
                     }
                 }
@@ -215,7 +308,38 @@ int main()
                 selectedX = -1;
                 selectedY = -1;
                 possibleMoves.clear();
+                isAnimating = false;
+                lastOpponentMove = {-1, -1, -1, -1};
+                historyOffset = 0.0f;
             }
+            else if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.x >= 800 && event.mouseWheelScroll.x <= 1000)
+            {
+                historyOffset += event.mouseWheelScroll.delta * 20; // Przewijanie o 20 pikseli na skok
+                if (historyOffset < 0) historyOffset = 0;
+                const auto& history = game.getMoveHistory();
+                int maxOffset = std::max(0, static_cast<int>((history.size() + 1) / 2 * 20 - 760));
+                if (historyOffset > maxOffset) historyOffset = maxOffset;
+            }
+        }
+
+        // Obsługa ruchu AI po pauzie
+        if (isWaitingForAIMove && aiMoveDelayClock.getElapsedTime().asSeconds() >= 1.0f && !isAnimating)
+        {
+            Move aiMove = game.getBestMove(depth);
+            if (aiMove.fromX != -1 && game.isValidMove(aiMove, BLACK))
+            {
+                animatingMove = aiMove;
+                animationPiece = game.getPiece(aiMove.fromX, aiMove.fromY);
+                isAnimating = true;
+                animationClock.restart();
+                lastOpponentMove = aiMove;
+                game.makeMove(aiMove);
+            }
+            else
+            {
+                std::cerr << "AI generated invalid move!" << std::endl;
+            }
+            isWaitingForAIMove = false;
         }
 
         window.clear(sf::Color::White);
@@ -225,20 +349,19 @@ int main()
         window.draw(historyTitle);
 
         // Draw move history
-        const auto& history = game.getMoveHistory();
-        for (size_t i = 0; i < history.size(); ++i)
-        {
-            sf::Text moveText;
-            moveText.setFont(font);
-            moveText.setCharacterSize(16);
-            moveText.setFillColor(sf::Color::Black);
-            std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + moveToAlgebraic(history[i]);
-            moveText.setString(moveStr);
-            moveText.setPosition(820, 40 + i * 20);
-            window.draw(moveText);
-        }
+//        const auto& history = game.getMoveHistory();
+//        for (size_t i = 0; i < history.size(); ++i)
+//        {
+//            sf::Text moveText;
+//            moveText.setFont(font);
+//            moveText.setCharacterSize(16);
+//            moveText.setFillColor(sf::Color::Black);
+//            std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + moveToAlgebraic(history[i]);
+//            moveText.setString(moveStr);
+//            moveText.setPosition(820, 40 + i * 20);
+//            window.draw(moveText);
+//        }
 
-        // Draw board
         for (int i = 0; i < 8; ++i)
         {
             for (int j = 0; j < 8; ++j)
@@ -247,55 +370,105 @@ int main()
                 square.setPosition(j * squareSize, i * squareSize);
                 square.setFillColor((i + j) % 2 == 0 ? sf::Color(255, 206, 158) : sf::Color(209, 139, 71));
                 window.draw(square);
-
-                if (i == selectedX && j == selectedY)
-                {
-                    sf::RectangleShape highlight(sf::Vector2f(squareSize, squareSize));
-                    highlight.setPosition(j * squareSize, i * squareSize);
-                    highlight.setFillColor(sf::Color(255, 255, 0, 128));
-                    window.draw(highlight);
-                }
-
-                for (const auto &move: possibleMoves)
-                {
-                    if (move.toX == i && move.toY == j)
-                    {
-                        sf::RectangleShape moveHighlight(sf::Vector2f(squareSize, squareSize));
-                        moveHighlight.setPosition(j * squareSize, i * squareSize);
-                        moveHighlight.setFillColor(sf::Color(0, 255, 0, 128));
-                        window.draw(moveHighlight);
-                    }
-                }
             }
         }
 
-        // Draw pieces
+        // Podświetlenie ostatniego ruchu AI
+        if (lastOpponentMove.fromX != -1)
+        {
+            sf::RectangleShape fromHighlight(sf::Vector2f(squareSize, squareSize));
+            fromHighlight.setPosition(lastOpponentMove.fromY * squareSize, lastOpponentMove.fromX * squareSize);
+            fromHighlight.setFillColor(sf::Color(0, 0, 255, 128));
+            window.draw(fromHighlight);
+
+            sf::RectangleShape toHighlight(sf::Vector2f(squareSize, squareSize));
+            toHighlight.setPosition(lastOpponentMove.toY * squareSize, lastOpponentMove.toX * squareSize);
+            toHighlight.setFillColor(sf::Color(0, 0, 255, 128));
+            window.draw(toHighlight);
+        }
+
+        // Podświetlenie wybranego pola
+        if (selectedX != -1 && selectedY != -1)
+        {
+            sf::RectangleShape highlight(sf::Vector2f(squareSize, squareSize));
+            highlight.setPosition(selectedY * squareSize, selectedX * squareSize);
+            highlight.setFillColor(sf::Color(255, 255, 0, 128));
+            window.draw(highlight);
+        }
+
+        // Podświetlenie możliwych ruchów
+        for (const auto &move : possibleMoves)
+        {
+            sf::RectangleShape moveHighlight(sf::Vector2f(squareSize, squareSize));
+            moveHighlight.setPosition(move.toY * squareSize, move.toX * squareSize);
+            moveHighlight.setFillColor(sf::Color(0, 255, 0, 128));
+            window.draw(moveHighlight);
+        }
+
+        // Rysowanie figur (z wyjątkiem animowanej)
         for (int i = 0; i < 8; ++i)
         {
             for (int j = 0; j < 8; ++j)
             {
+                if (isAnimating && (i == animatingMove.fromX && j == animatingMove.fromY || i == animatingMove.toX && j == animatingMove.toY))
+                    continue;
                 Piece piece = game.getPiece(i, j);
                 if (piece != EMPTY_PIECE)
                 {
-                    int textureIndex = -1;
-                    if (piece.color == WHITE)
-                    {
-                        textureIndex = piece.type;
-                    }
-                    else
-                    {
-                        textureIndex = piece.type + 6;
-                    }
-
-                    if (textureIndex >= 0)
-                    {
-                        sf::Sprite pieceSprite(pieceTextures[textureIndex]);
-                        pieceSprite.setPosition(j * squareSize, i * squareSize);
-                        sf::Vector2u textureSize = pieceTextures[textureIndex].getSize();
-                        pieceSprite.setScale(squareSize / textureSize.x, squareSize / textureSize.y);
-                        window.draw(pieceSprite);
-                    }
+                    int textureIndex = piece.color == WHITE ? piece.type : piece.type + 6;
+                    sf::Sprite pieceSprite(pieceTextures[textureIndex]);
+                    pieceSprite.setPosition(j * squareSize + squareSize * 0.125f, i * squareSize + squareSize * 0.125f);
+                    sf::Vector2u textureSize = pieceTextures[textureIndex].getSize();
+                    pieceSprite.setScale(0.75f * squareSize / textureSize.x, 0.75f * squareSize / textureSize.y);
+                    window.draw(pieceSprite);
                 }
+            }
+        }
+
+        // Animacja ruchu
+        if (isAnimating)
+        {
+            float t = animationClock.getElapsedTime().asSeconds() / animationDuration;
+            if (t >= 1.0f)
+            {
+                isAnimating = false;
+                t = 1.0f;
+            }
+            float fromX = animatingMove.fromY * squareSize;
+            float fromY = animatingMove.fromX * squareSize;
+            float toX = animatingMove.toY * squareSize;
+            float toY = animatingMove.toX * squareSize;
+            float posX = fromX + (toX - fromX) * t;
+            float posY = fromY + (toY - fromY) * t;
+
+            int textureIndex = animationPiece.color == WHITE ? animationPiece.type : animationPiece.type + 6;
+            sf::Sprite pieceSprite(pieceTextures[textureIndex]);
+            pieceSprite.setPosition(posX + squareSize * 0.1f, posY + squareSize * 0.1f);
+            sf::Vector2u textureSize = pieceTextures[textureIndex].getSize();
+            pieceSprite.setScale(0.8 * squareSize / textureSize.x, 0.8 * squareSize / textureSize.y);
+            window.draw(pieceSprite);
+        }
+
+        // Rysowanie etykiet planszy
+        for (const auto& label : boardLabels) {
+            window.draw(label);
+        }
+
+        // Historia ruchów
+        const auto& history = game.getMoveHistory();
+        for (size_t i = 0; i < history.size(); ++i)
+        {
+            sf::Text moveText;
+            moveText.setFont(font);
+            moveText.setCharacterSize(16);
+            moveText.setFillColor(sf::Color::Black);
+            std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + moveToAlgebraic(game, history[i]);
+            moveText.setString(moveStr);
+            float yPos = 40 + (i / 2 * 20) + (i % 2) * 10 - historyOffset;
+            if (yPos >= 40 && yPos < 800)
+            {
+                moveText.setPosition(820 + (i % 2) * 80, yPos);
+                window.draw(moveText);
             }
         }
 

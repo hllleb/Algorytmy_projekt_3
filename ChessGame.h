@@ -36,6 +36,20 @@ private:
     static const int MAX_DEPTH = 3;
     Logger logger;
 
+    // Struktura do przechowywania stanu gry przed tymczasowym ruchem
+    struct GameState
+    {
+        Piece capturedPiece;
+        bool whiteCanCastleKingside;
+        bool whiteCanCastleQueenside;
+        bool blackCanCastleKingside;
+        bool blackCanCastleQueenside;
+        int enPassantTargetX;
+        int enPassantTargetY;
+        Move move;
+        Piece movedPiece;
+    };
+
     // Funkcja do obliczania wartości zdobytej figury dla sortowania ruchów
     int getCaptureValue(const Move &move) const
     {
@@ -64,13 +78,24 @@ private:
     }
 
 public:
-    ChessGame() : currentPlayer(WHITE), isCheckmate(false), isStalemate(false), gameOverState(false), whiteCanCastleKingside(true),
-                  whiteCanCastleQueenside(true), blackCanCastleKingside(true), blackCanCastleQueenside(true),
-                  enPassantTargetX(-1), enPassantTargetY(-1), isPawnPromotionPending(false), promotionX(-1),
-                  promotionY(-1), promotionChoice(QUEEN), logger("chess_log.txt")
+    ChessGame() : currentPlayer(WHITE), isCheckmate(false), isStalemate(false), gameOverState(false),
+                  whiteCanCastleKingside(true), whiteCanCastleQueenside(true), blackCanCastleKingside(true),
+                  blackCanCastleQueenside(true), enPassantTargetX(-1), enPassantTargetY(-1),
+                  isPawnPromotionPending(false), promotionX(-1), promotionY(-1), promotionChoice(QUEEN),
+                  logger("chess_log.txt")
     {
         initializeBoard();
     }
+
+    int getEnPassantTargetX()
+    {
+        return enPassantTargetX;
+    };
+
+    int getEnPassantTargetY()
+    {
+        return enPassantTargetY;
+    };
 
     void initializeBoard()
     {
@@ -278,11 +303,11 @@ public:
         Piece target = board[move.toX][move.toY];
         if (target != EMPTY_PIECE)
         {
-            if(target.color == piece.color)
+            if (target.color == piece.color)
             {
                 return false;
             }
-            if(target.type == KING)
+            if (target.type == KING)
             {
                 return false;
             }
@@ -371,13 +396,19 @@ public:
                         board[7][5] = board[7][4];
                         bool check1 = isInCheck(WHITE);
                         board[7][5] = temp;
-                        if (check1) return false;
+                        if (check1)
+                        {
+                            return false;
+                        }
 
                         temp = board[7][6];
                         board[7][6] = board[7][4];
                         bool check2 = isInCheck(WHITE);
                         board[7][6] = temp;
-                        if (check2) return false;
+                        if (check2)
+                        {
+                            return false;
+                        }
 
                         validPieceMove = true;
                     }
@@ -389,13 +420,19 @@ public:
                         board[7][3] = board[7][4];
                         bool check1 = isInCheck(WHITE);
                         board[7][3] = temp;
-                        if (check1) return false;
+                        if (check1)
+                        {
+                            return false;
+                        }
 
                         temp = board[7][2];
                         board[7][2] = board[7][4];
                         bool check2 = isInCheck(WHITE);
                         board[7][2] = temp;
-                        if (check2) return false;
+                        if (check2)
+                        {
+                            return false;
+                        }
 
                         validPieceMove = true;
                     }
@@ -410,13 +447,19 @@ public:
                         board[0][5] = board[0][4];
                         bool check1 = isInCheck(BLACK);
                         board[0][5] = temp;
-                        if (check1) return false;
+                        if (check1)
+                        {
+                            return false;
+                        }
 
                         temp = board[0][6];
                         board[0][6] = board[0][4];
                         bool check2 = isInCheck(BLACK);
                         board[0][6] = temp;
-                        if (check2) return false;
+                        if (check2)
+                        {
+                            return false;
+                        }
 
                         validPieceMove = true;
                     }
@@ -428,13 +471,19 @@ public:
                         board[0][3] = board[0][4];
                         bool check1 = isInCheck(BLACK);
                         board[0][3] = temp;
-                        if (check1) return false;
+                        if (check1)
+                        {
+                            return false;
+                        }
 
                         temp = board[0][2];
                         board[0][2] = board[0][4];
                         bool check2 = isInCheck(BLACK);
                         board[0][2] = temp;
-                        if (check2) return false;
+                        if (check2)
+                        {
+                            return false;
+                        }
 
                         validPieceMove = true;
                     }
@@ -446,7 +495,7 @@ public:
                 return false;
         }
 
-        if(!validPieceMove)
+        if (!validPieceMove)
         {
             return false;
         }
@@ -557,6 +606,127 @@ public:
         checkGameState();
     }
 
+    // Wykonaj tymczasowy ruch i zwróć stan gry
+    GameState makeTemporaryMove(const Move &move)
+    {
+        GameState state{board[move.toX][move.toY], whiteCanCastleKingside, whiteCanCastleQueenside,
+                        blackCanCastleKingside, blackCanCastleQueenside, enPassantTargetX, enPassantTargetY, move,
+                        board[move.fromX][move.fromY]};
+
+        int direction = (state.movedPiece.color == WHITE) ? -1 : 1;
+        int startRow = (state.movedPiece.color == WHITE) ? 6 : 1;
+
+        if (state.movedPiece.type == KING)
+        {
+            if (state.movedPiece.color == WHITE)
+            {
+                whiteCanCastleKingside = false;
+                whiteCanCastleQueenside = false;
+            }
+            else
+            {
+                blackCanCastleKingside = false;
+                blackCanCastleQueenside = false;
+            }
+        }
+        if (state.movedPiece.type == ROOK)
+        {
+            if (state.movedPiece.color == WHITE)
+            {
+                if (move.fromX == 7 && move.fromY == 0)
+                {
+                    whiteCanCastleQueenside = false;
+                }
+                if (move.fromX == 7 && move.fromY == 7)
+                {
+                    whiteCanCastleKingside = false;
+                }
+            }
+            else
+            {
+                if (move.fromX == 0 && move.fromY == 0)
+                {
+                    blackCanCastleQueenside = false;
+                }
+                if (move.fromX == 0 && move.fromY == 7)
+                {
+                    blackCanCastleKingside = false;
+                }
+            }
+        }
+
+        enPassantTargetX = -1;
+        enPassantTargetY = -1;
+        if (state.movedPiece.type == PAWN && move.fromX == startRow && abs(move.toX - move.fromX) == 2)
+        {
+            enPassantTargetX = move.fromX + direction;
+            enPassantTargetY = move.fromY;
+        }
+        if (state.movedPiece.type == PAWN && move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)
+        {
+            board[move.toX - direction][move.toY] = EMPTY_PIECE;
+        }
+
+        if (state.movedPiece.type == KING && abs(move.toY - move.fromY) == 2)
+        {
+            if (move.toY > move.fromY)
+            {
+                board[move.fromX][move.fromY + 1] = board[move.fromX][7];
+                board[move.fromX][7] = EMPTY_PIECE;
+            }
+            else
+            {
+                board[move.fromX][move.fromY - 1] = board[move.fromX][0];
+                board[move.fromX][0] = EMPTY_PIECE;
+            }
+        }
+
+        board[move.toX][move.toY] = board[move.fromX][move.fromY];
+        board[move.fromX][move.fromY] = EMPTY_PIECE;
+
+        moveHistory.push_back(move);
+        currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
+        return state;
+    }
+
+    // Cofnij tymczasowy ruch
+    void undoMove(const GameState &state)
+    {
+        board[state.move.fromX][state.move.fromY] = state.movedPiece;
+        board[state.move.toX][state.move.toY] = state.capturedPiece;
+
+        if (state.movedPiece.type == PAWN && state.move.toX == state.enPassantTargetX &&
+            state.move.toY == state.enPassantTargetY)
+        {
+            int direction = (state.movedPiece.color == WHITE) ? 1 : -1;
+            board[state.move.toX - direction][state.move.toY] = Piece(PAWN, currentPlayer == WHITE ? BLACK : WHITE);
+        }
+
+        if (state.movedPiece.type == KING && abs(state.move.toY - state.move.fromY) == 2)
+        {
+            if (state.move.toY > state.move.fromY)
+            {
+                board[state.move.fromX][7] = board[state.move.fromX][state.move.fromY + 1];
+                board[state.move.fromX][state.move.fromY + 1] = EMPTY_PIECE;
+            }
+            else
+            {
+                board[state.move.fromX][0] = board[state.move.fromX][state.move.fromY - 1];
+                board[state.move.fromX][state.move.fromY - 1] = EMPTY_PIECE;
+            }
+        }
+
+        whiteCanCastleKingside = state.whiteCanCastleKingside;
+        whiteCanCastleQueenside = state.whiteCanCastleQueenside;
+        blackCanCastleKingside = state.blackCanCastleKingside;
+        blackCanCastleQueenside = state.blackCanCastleQueenside;
+        enPassantTargetX = state.enPassantTargetX;
+        enPassantTargetY = state.enPassantTargetY;
+
+        moveHistory.pop_back();
+        currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
+    }
+
     bool isPromotionPending() const
     {
         return isPawnPromotionPending;
@@ -603,13 +773,17 @@ public:
                 if (board[i][j] != EMPTY_PIECE)
                 {
                     pieceCount++;
-                    if(board[i][j].type == KING)
+                    if (board[i][j].type == KING)
                     {
                         kingCount++;
                         if (board[i][j].color == WHITE)
+                        {
                             missingKingColor = BLACK;
+                        }
                         else
+                        {
                             missingKingColor = WHITE;
+                        }
                     }
                 }
             }
@@ -629,7 +803,8 @@ public:
             isCheckmate = true;
             isStalemate = false;
             gameOverState = true;
-            logger.log(std::string(missingKingColor == WHITE ? "Black" : "White") + " wins by capturing king!", Logger::SUCCESS);
+            logger.log(std::string(missingKingColor == WHITE ? "Black" : "White") + " wins by capturing king!",
+                       Logger::SUCCESS);
             return;
         }
 
@@ -680,7 +855,7 @@ public:
         logger.log("Game reset.", Logger::INFO);
     }
 
-    const std::vector<Move>& getMoveHistory() const
+    const std::vector<Move> &getMoveHistory() const
     {
         return moveHistory;
     }
@@ -692,7 +867,10 @@ public:
         {
             for (int j = 0; j < 8; j++)
             {
-                if (board[i][j].color != player) continue;
+                if (board[i][j].color != player)
+                {
+                    continue;
+                }
 
                 Piece piece = board[i][j];
                 switch (piece.type)
@@ -706,41 +884,63 @@ public:
                         if (isValidPosition(i + direction, j))
                         {
                             Move move(i, j, i + direction, j);
-                            if (isValidMove(move, player)) moves.push_back(move);
+                            if (isValidMove(move, player))
+                            {
+                                moves.push_back(move);
+                            }
                         }
 
                         // Ruch o dwa pola do przodu
                         if (i == startRow && isValidPosition(i + 2 * direction, j))
                         {
                             Move move(i, j, i + 2 * direction, j);
-                            if (isValidMove(move, player)) moves.push_back(move);
+                            if (isValidMove(move, player))
+                            {
+                                moves.push_back(move);
+                            }
                         }
 
                         // Bicie w lewo
                         if (isValidPosition(i + direction, j - 1))
                         {
                             Move move(i, j, i + direction, j - 1);
-                            if (isValidMove(move, player)) moves.push_back(move);
+                            if (isValidMove(move, player))
+                            {
+                                moves.push_back(move);
+                            }
                         }
 
                         // Bicie w prawo
                         if (isValidPosition(i + direction, j + 1))
                         {
                             Move move(i, j, i + direction, j + 1);
-                            if (isValidMove(move, player)) moves.push_back(move);
+                            if (isValidMove(move, player))
+                            {
+                                moves.push_back(move);
+                            }
                         }
                         break;
                     }
                     case KNIGHT:
                     {
-                        int knightMoves[8][2] = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
-                        for (const auto& m : knightMoves)
+                        int knightMoves[8][2] = {{-2, -1},
+                                                 {-2, 1},
+                                                 {-1, -2},
+                                                 {-1, 2},
+                                                 {1,  -2},
+                                                 {1,  2},
+                                                 {2,  -1},
+                                                 {2,  1}};
+                        for (const auto &m: knightMoves)
                         {
                             int ni = i + m[0], nj = j + m[1];
                             if (isValidPosition(ni, nj))
                             {
                                 Move move(i, j, ni, nj);
-                                if (isValidMove(move, player)) moves.push_back(move);
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
                             }
                         }
                         break;
@@ -754,10 +954,19 @@ public:
                                 for (int k = 1; k < 8; k++)
                                 {
                                     int ni = i + k * d, nj = j + k * e;
-                                    if (!isValidPosition(ni, nj)) break;
+                                    if (!isValidPosition(ni, nj))
+                                    {
+                                        break;
+                                    }
                                     Move move(i, j, ni, nj);
-                                    if (isValidMove(move, player)) moves.push_back(move);
-                                    if (board[ni][nj] != EMPTY_PIECE) break;
+                                    if (isValidMove(move, player))
+                                    {
+                                        moves.push_back(move);
+                                    }
+                                    if (board[ni][nj] != EMPTY_PIECE)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -770,18 +979,36 @@ public:
                             for (int k = 1; k < 8; k++)
                             {
                                 int ni = i + k * d, nj = j;
-                                if (!isValidPosition(ni, nj)) break;
+                                if (!isValidPosition(ni, nj))
+                                {
+                                    break;
+                                }
                                 Move move(i, j, ni, nj);
-                                if (isValidMove(move, player)) moves.push_back(move);
-                                if (board[ni][nj] != EMPTY_PIECE) break;
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
+                                if (board[ni][nj] != EMPTY_PIECE)
+                                {
+                                    break;
+                                }
                             }
                             for (int k = 1; k < 8; k++)
                             {
                                 int ni = i, nj = j + k * d;
-                                if (!isValidPosition(ni, nj)) break;
+                                if (!isValidPosition(ni, nj))
+                                {
+                                    break;
+                                }
                                 Move move(i, j, ni, nj);
-                                if (isValidMove(move, player)) moves.push_back(move);
-                                if (board[ni][nj] != EMPTY_PIECE) break;
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
+                                if (board[ni][nj] != EMPTY_PIECE)
+                                {
+                                    break;
+                                }
                             }
                         }
                         break;
@@ -795,27 +1022,54 @@ public:
                                 for (int k = 1; k < 8; k++)
                                 {
                                     int ni = i + k * d, nj = j + k * e;
-                                    if (!isValidPosition(ni, nj)) break;
+                                    if (!isValidPosition(ni, nj))
+                                    {
+                                        break;
+                                    }
                                     Move move(i, j, ni, nj);
-                                    if (isValidMove(move, player)) moves.push_back(move);
-                                    if (board[ni][nj] != EMPTY_PIECE) break;
+                                    if (isValidMove(move, player))
+                                    {
+                                        moves.push_back(move);
+                                    }
+                                    if (board[ni][nj] != EMPTY_PIECE)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                             for (int k = 1; k < 8; k++)
                             {
                                 int ni = i + k * d, nj = j;
-                                if (!isValidPosition(ni, nj)) break;
+                                if (!isValidPosition(ni, nj))
+                                {
+                                    break;
+                                }
                                 Move move(i, j, ni, nj);
-                                if (isValidMove(move, player)) moves.push_back(move);
-                                if (board[ni][nj] != EMPTY_PIECE) break;
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
+                                if (board[ni][nj] != EMPTY_PIECE)
+                                {
+                                    break;
+                                }
                             }
                             for (int k = 1; k < 8; k++)
                             {
                                 int ni = i, nj = j + k * d;
-                                if (!isValidPosition(ni, nj)) break;
+                                if (!isValidPosition(ni, nj))
+                                {
+                                    break;
+                                }
                                 Move move(i, j, ni, nj);
-                                if (isValidMove(move, player)) moves.push_back(move);
-                                if (board[ni][nj] != EMPTY_PIECE) break;
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
+                                if (board[ni][nj] != EMPTY_PIECE)
+                                {
+                                    break;
+                                }
                             }
                         }
                         break;
@@ -826,12 +1080,18 @@ public:
                         {
                             for (int dj = -1; dj <= 1; dj++)
                             {
-                                if (di == 0 && dj == 0) continue;
+                                if (di == 0 && dj == 0)
+                                {
+                                    continue;
+                                }
                                 int ni = i + di, nj = j + dj;
                                 if (isValidPosition(ni, nj))
                                 {
                                     Move move(i, j, ni, nj);
-                                    if (isValidMove(move, player)) moves.push_back(move);
+                                    if (isValidMove(move, player))
+                                    {
+                                        moves.push_back(move);
+                                    }
                                 }
                             }
                         }
@@ -841,12 +1101,18 @@ public:
                             if (whiteCanCastleKingside)
                             {
                                 Move move(7, 4, 7, 6);
-                                if (isValidMove(move, player)) moves.push_back(move);
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
                             }
                             if (whiteCanCastleQueenside)
                             {
                                 Move move(7, 4, 7, 2);
-                                if (isValidMove(move, player)) moves.push_back(move);
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
                             }
                         }
                         else if (piece.color == BLACK && i == 0 && j == 4)
@@ -854,12 +1120,18 @@ public:
                             if (blackCanCastleKingside)
                             {
                                 Move move(0, 4, 0, 6);
-                                if (isValidMove(move, player)) moves.push_back(move);
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
                             }
                             if (blackCanCastleQueenside)
                             {
                                 Move move(0, 4, 0, 2);
-                                if (isValidMove(move, player)) moves.push_back(move);
+                                if (isValidMove(move, player))
+                                {
+                                    moves.push_back(move);
+                                }
                             }
                         }
                         break;
@@ -884,7 +1156,10 @@ public:
             for (int j = 0; j < 8; j++)
             {
                 Piece piece = board[i][j];
-                if (piece == EMPTY_PIECE) continue;
+                if (piece == EMPTY_PIECE)
+                {
+                    continue;
+                }
 
                 int value = 0;
                 switch (piece.type)
@@ -930,7 +1205,8 @@ public:
                     }
                 }
 
-                score += (piece.color == WHITE) ? (value + centerControl + kingPenalty) : -(value + centerControl + kingPenalty);
+                score += (piece.color == WHITE) ? (value + centerControl + kingPenalty) : -(value + centerControl +
+                                                                                            kingPenalty);
                 centerControl = 0; // Reset dla następnej figury
                 kingPenalty = 0;
             }
@@ -979,7 +1255,7 @@ public:
                     int bestPromotionEval = INT_MIN;
                     PieceType bestPromotion = QUEEN;
                     PieceType options[] = {QUEEN, ROOK, BISHOP, KNIGHT};
-                    for (PieceType option : options)
+                    for (PieceType option: options)
                     {
                         board[move.toX][move.toY] = Piece(option, board[move.toX][move.toY].color);
                         int eval = minimax(depth - 1, alpha, beta, false);
@@ -1034,7 +1310,7 @@ public:
                     int bestPromotionEval = INT_MAX;
                     PieceType bestPromotion = QUEEN;
                     PieceType options[] = {QUEEN, ROOK, BISHOP, KNIGHT};
-                    for (PieceType option : options)
+                    for (PieceType option: options)
                     {
                         board[move.toX][move.toY] = Piece(option, board[move.toX][move.toY].color);
                         int eval = minimax(depth - 1, alpha, beta, true);
@@ -1082,17 +1358,18 @@ public:
 
         std::vector<Move> moves = getAllPossibleMoves(currentPlayer);
 
-        if(moves.empty())
+        if (moves.empty())
         {
             return Move(-1, -1, -1, -1);
         }
 
         // Sortuj ruchy: najpierw bicie figur (od najcenniejszych), potem reszta
-        std::sort(moves.begin(), moves.end(), [this](const Move& a, const Move& b) {
+        std::sort(moves.begin(), moves.end(), [this](const Move &a, const Move &b)
+        {
             return getCaptureValue(a) > getCaptureValue(b);
         });
 
-        Move bestMove(0, 0, 0, 0);
+        Move bestMove = moves[0];
         int bestValue = INT_MIN;
         int alpha = INT_MIN;
         int beta = INT_MAX;
@@ -1108,11 +1385,11 @@ public:
 
             int moveValue = INT_MIN;
             bool isPromotionMove = (movingPiece.type == PAWN && (move.toX == 0 || move.toX == 7));
-            if(isPromotionMove)
+            if (isPromotionMove)
             {
                 int bestPromotionValue = INT_MIN;
                 PieceType options[] = {QUEEN, ROOK, BISHOP, KNIGHT};
-                for (PieceType option : options)
+                for (PieceType option: options)
                 {
                     board[move.toX][move.toY] = Piece(option, movingPiece.color);
                     int promotionValue = minimax(depth - 1, alpha, beta, false);
@@ -1129,6 +1406,9 @@ public:
                 moveValue = minimax(depth - 1, alpha, beta, false);
             }
 
+            board[move.fromX][move.fromY] = movingPiece;
+            board[move.toX][move.toY] = temp;
+
             if (moveValue > bestValue)
             {
                 bestValue = moveValue;
@@ -1140,9 +1420,6 @@ public:
             }
             alpha = std::max(alpha, moveValue);
 
-            board[move.fromX][move.fromY] = board[move.toX][move.toY];
-            board[move.toX][move.toY] = temp;
-
             if (beta <= alpha)
             {
                 break;
@@ -1150,9 +1427,10 @@ public:
         }
 
         // Logowanie ruchu AI
-        std::string moveStr = "AI move: (" + std::to_string(bestMove.fromX) + "," + std::to_string(bestMove.fromY) +
-                              ") to (" + std::to_string(bestMove.toX) + "," + std::to_string(bestMove.toY) +
-                              ") with value: " + std::to_string(bestValue);
+        std::string moveStr =
+                "AI move: (" + std::to_string(bestMove.fromX) + "," + std::to_string(bestMove.fromY) + ") to (" +
+                std::to_string(bestMove.toX) + "," + std::to_string(bestMove.toY) + ") with value: " +
+                std::to_string(bestValue);
         logger.log(moveStr, Logger::INFO);
         // Obsługa promocji
         Piece piece = board[bestMove.fromX][bestMove.fromY];
