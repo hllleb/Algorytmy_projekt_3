@@ -30,9 +30,6 @@ private:
     std::vector<Move> moveHistory;
 
     //Move lastMove = {-1, -1, -1, -1, false, false, QUEEN, EMPTY_PIECE};
-    //bool gameOver = false;
-    //std::vector<Move> moveHistory;
-    //std::unordered_map<std::string, int> boardStates;
     static const int MAX_DEPTH = 3;
     Logger logger;
 
@@ -75,6 +72,85 @@ private:
             default:
                 return 0;
         }
+    }
+
+    std::string generateAlgebraicNotation(const Move& move, const GameState& state)
+    {
+        Piece piece = state.movedPiece;
+        if (piece == EMPTY_PIECE) return "";
+
+        std::string notation;
+        std::string pieceSymbol;
+        switch (piece.type) {
+            case KNIGHT: pieceSymbol = "N"; break;
+            case BISHOP: pieceSymbol = "B"; break;
+            case ROOK: pieceSymbol = "R"; break;
+            case QUEEN: pieceSymbol = "Q"; break;
+            case KING: pieceSymbol = "K"; break;
+            default: break;
+        }
+
+        if(piece.color == BLACK)
+        {
+            pieceSymbol[0] = tolower(pieceSymbol[0]);
+        }
+
+        notation+= pieceSymbol;
+
+        if (piece.type == KING && abs(move.toY - move.fromY) == 2) {
+            return move.toY > move.fromY ? "O-O" : "O-O-O";
+        }
+
+        if (piece.type != PAWN) {
+            notation += char('a' + move.fromY);
+            notation += std::to_string(8 - move.fromX);
+        } else if (state.capturedPiece != EMPTY_PIECE || (move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)) {
+            notation += char('a' + move.fromY);
+        }
+
+        if (state.capturedPiece != EMPTY_PIECE || (piece.type == PAWN && move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)) {
+            notation += "x";
+        }
+
+        notation += char('a' + move.toY);
+        notation += std::to_string(8 - move.toX);
+
+        bool isPromotion = (piece.type == PAWN && (move.toX == 0 || move.toX == 7));
+        std::string promotionNotation;
+        if (isPromotion) {
+            promotionNotation += "=";
+            pieceSymbol = "";
+            switch (board[move.toX][move.toY].type) {
+                case QUEEN: pieceSymbol = "Q"; break;
+                case ROOK: pieceSymbol = "R"; break;
+                case BISHOP: pieceSymbol = "B"; break;
+                case KNIGHT: pieceSymbol = "N"; break;
+                default: break;
+            }
+
+            if(board[move.toX][move.toY].color == BLACK)
+            {
+                pieceSymbol[0] = tolower(pieceSymbol[0]);
+            }
+
+            promotionNotation += pieceSymbol;
+        }
+
+        // Sprawdzenie szacha/mata bez modyfikacji historii
+        Piece tempTo = board[move.toX][move.toY];
+        Piece tempFrom = board[move.fromX][move.fromY];
+        board[move.toX][move.toY] = tempFrom;
+        board[move.fromX][move.fromY] = EMPTY_PIECE;
+        bool isCheck = isInCheck(currentPlayer == WHITE ? BLACK : WHITE);
+        bool isMate = isCheck && getAllPossibleMoves(currentPlayer == WHITE ? BLACK : WHITE).empty();
+        board[move.fromX][move.fromY] = tempFrom;
+        board[move.toX][move.toY] = tempTo;
+
+        if (isCheck) {
+            notation += isMate ? "#" : "+";
+        }
+
+        return notation + promotionNotation;
     }
 
 public:
@@ -522,6 +598,10 @@ public:
             return;
         }
 
+        GameState state{board[move.toX][move.toY], whiteCanCastleKingside, whiteCanCastleQueenside,
+                        blackCanCastleKingside, blackCanCastleQueenside, enPassantTargetX, enPassantTargetY, move,
+                        board[move.fromX][move.fromY]};
+
         Piece piece = board[move.fromX][move.fromY];
         int direction = (piece.color == WHITE) ? -1 : 1;
         int startRow = (piece.color == WHITE) ? 6 : 1;
@@ -601,7 +681,8 @@ public:
         board[move.toX][move.toY] = board[move.fromX][move.fromY];
         board[move.fromX][move.fromY] = EMPTY_PIECE;
 
-        moveHistory.push_back(move);
+        std::string notation = generateAlgebraicNotation(move, state);
+        moveHistory.emplace_back(move.fromX, move.fromY, move.toX, move.toY, notation);
         currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
         checkGameState();
     }
@@ -684,7 +765,6 @@ public:
         board[move.toX][move.toY] = board[move.fromX][move.fromY];
         board[move.fromX][move.fromY] = EMPTY_PIECE;
 
-        moveHistory.push_back(move);
         currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
         return state;
     }
@@ -723,7 +803,6 @@ public:
         enPassantTargetX = state.enPassantTargetX;
         enPassantTargetY = state.enPassantTargetY;
 
-        moveHistory.pop_back();
         currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
     }
 

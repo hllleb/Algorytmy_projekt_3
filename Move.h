@@ -7,8 +7,9 @@
 struct Move
 {
     int fromX, fromY, toX, toY;
+    std::string notation;
 
-    Move(int fx, int fy, int tx, int ty) : fromX(fx), fromY(fy), toX(tx), toY(ty)
+    Move(int fx, int fy, int tx, int ty, std::string notation = "") : fromX(fx), fromY(fy), toX(tx), toY(ty), notation(notation)
     {
     }
 

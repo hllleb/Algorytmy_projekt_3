@@ -10,77 +10,6 @@
 #include "Logger.h"
 #include "ChessGame.h"
 
-//// Funkcja konwertująca współrzędne na notację szachową
-//std::string moveToAlgebraic(const ChessGame& game, const Move& move) {
-//    std::string from = std::string(1, 'a' + move.fromY) + std::to_string(8 - move.fromX);
-//    std::string to = std::string(1, 'a' + move.toY) + std::to_string(8 - move.toX);
-//    return from + "-" + to;
-//}
-
-std::string moveToAlgebraic(ChessGame& game, const Move& move) {
-    Piece piece = game.getPiece(move.fromX, move.fromY);
-    if (piece == EMPTY_PIECE) return "";
-
-    std::string notation;
-    // Oznacz figurę (oprócz pionka)
-    switch (piece.type) {
-        case KNIGHT: notation += "N"; break;
-        case BISHOP: notation += "B"; break;
-        case ROOK: notation += "R"; break;
-        case QUEEN: notation += "Q"; break;
-        case KING: notation += "K"; break;
-        default: break; // Pionek
-    }
-
-    // Roszada
-    if (piece.type == KING && abs(move.toY - move.fromY) == 2) {
-        return move.toY > move.fromY ? "O-O" : "O-O-O";
-    }
-
-    // Pole początkowe (tylko jeśli potrzebne, uproszczenie)
-    if (piece.type != PAWN) {
-        notation += char('a' + move.fromY);
-        notation += std::to_string(8 - move.fromX);
-    } else if (game.getPiece(move.toX, move.toY) != EMPTY_PIECE || (move.toX == game.getEnPassantTargetX() && move.toY == game.getEnPassantTargetY())) {
-        notation += char('a' + move.fromY);
-    }
-
-    // Bicie
-    if (game.getPiece(move.toX, move.toY) != EMPTY_PIECE || (piece.type == PAWN && move.toX == game.getEnPassantTargetX() && move.toY == game.getEnPassantTargetY())) {
-        notation += "x";
-    }
-
-    // Pole docelowe
-    notation += char('a' + move.toY);
-    notation += std::to_string(8 - move.fromX);
-
-    // Promocja (sprawdzamy po ruchu)
-    bool isPromotion = (piece.type == PAWN && (move.toX == 0 || move.toX == 7));
-    std::string promotionNotation;
-    if (isPromotion) {
-        promotionNotation += "=";
-        switch (game.getPiece(move.toX, move.toY).type) { // Po promocji
-            case QUEEN: promotionNotation += "Q"; break;
-            case ROOK: promotionNotation += "R"; break;
-            case BISHOP: promotionNotation += "B"; break;
-            case KNIGHT: promotionNotation += "N"; break;
-            default: break;
-        }
-    }
-
-    // Sprawdź szach/mat
-    auto state = game.makeTemporaryMove(move);
-    bool isCheck = game.isInCheck(game.getCurrentPlayer());
-    bool isMate = isCheck && game.getAllPossibleMoves(game.getCurrentPlayer()).empty();
-    game.undoMove(state);
-
-    if (isCheck) {
-        notation += isMate ? "#" : "+";
-    }
-
-    return notation + promotionNotation;
-}
-
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1000, 800), "Chess Game");
@@ -348,20 +277,6 @@ int main()
         window.draw(sidebar);
         window.draw(historyTitle);
 
-        // Draw move history
-//        const auto& history = game.getMoveHistory();
-//        for (size_t i = 0; i < history.size(); ++i)
-//        {
-//            sf::Text moveText;
-//            moveText.setFont(font);
-//            moveText.setCharacterSize(16);
-//            moveText.setFillColor(sf::Color::Black);
-//            std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + moveToAlgebraic(history[i]);
-//            moveText.setString(moveStr);
-//            moveText.setPosition(820, 40 + i * 20);
-//            window.draw(moveText);
-//        }
-
         for (int i = 0; i < 8; ++i)
         {
             for (int j = 0; j < 8; ++j)
@@ -462,9 +377,9 @@ int main()
             moveText.setFont(font);
             moveText.setCharacterSize(16);
             moveText.setFillColor(sf::Color::Black);
-            std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + moveToAlgebraic(game, history[i]);
+            std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + history[i].notation;
             moveText.setString(moveStr);
-            float yPos = 40 + (i / 2 * 20) + (i % 2) * 10 - historyOffset;
+            float yPos = 40 + (i / 2 * 20) /*+ (i % 2) * 10*/ - historyOffset;
             if (yPos >= 40 && yPos < 800)
             {
                 moveText.setPosition(820 + (i % 2) * 80, yPos);
