@@ -81,6 +81,7 @@ private:
 
         std::string notation;
         std::string pieceSymbol;
+        sf::String str;
         switch (piece.type) {
             case KNIGHT: pieceSymbol = "N"; break;
             case BISHOP: pieceSymbol = "B"; break;

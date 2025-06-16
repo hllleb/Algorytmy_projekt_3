@@ -90,10 +90,11 @@ int main()
     resetText.setString("Restart Game");
     resetText.setCharacterSize(20);
     resetText.setFillColor(sf::Color::Black);
-    resetText.setPosition(820, 700);
+    //resetText.setPosition(820, 700);
+    resetText.setPosition(835, 730);
 
     sf::RectangleShape resetButton(sf::Vector2f(160, 50));
-    resetButton.setPosition(820, 700);
+    resetButton.setPosition(820, 720);
     resetButton.setFillColor(sf::Color(200, 200, 200));
 
     sf::RectangleShape sidebar(sf::Vector2f(200, 800));
@@ -121,8 +122,8 @@ int main()
                 if (game.isGameOver())
                 {
                     // Kliknięcie przycisku resetu
-                    if (event.mouseButton.x >= 820 && event.mouseButton.x <= 980 && event.mouseButton.y >= 700 &&
-                        event.mouseButton.y <= 750)
+                    if (event.mouseButton.x >= 820 && event.mouseButton.x <= 980 && event.mouseButton.y >= 720 &&
+                        event.mouseButton.y <= 770)
                     {
                         game.resetGame();
                         selectedX = -1;
@@ -243,7 +244,7 @@ int main()
             }
             else if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.x >= 800 && event.mouseWheelScroll.x <= 1000)
             {
-                historyOffset += event.mouseWheelScroll.delta * 20; // Przewijanie o 20 pikseli na skok
+                historyOffset -= event.mouseWheelScroll.delta * 20; // Przewijanie o 20 pikseli na skok
                 if (historyOffset < 0) historyOffset = 0;
                 const auto& history = game.getMoveHistory();
                 int maxOffset = std::max(0, static_cast<int>((history.size() + 1) / 2 * 20 - 760));
@@ -380,7 +381,7 @@ int main()
             std::string moveStr = (i % 2 == 0 ? std::to_string(i / 2 + 1) + ". " : "   ") + history[i].notation;
             moveText.setString(moveStr);
             float yPos = 40 + (i / 2 * 20) /*+ (i % 2) * 10*/ - historyOffset;
-            if (yPos >= 40 && yPos < 800)
+            if (yPos >= 40 && yPos < 700)
             {
                 moveText.setPosition(820 + (i % 2) * 80, yPos);
                 window.draw(moveText);
@@ -410,16 +411,19 @@ int main()
         float alpha = 128 + 127 * std::sin(animationClock.getElapsedTime().asSeconds() * 2);
         if (game.isCheckmateState())
         {
+            statusBackground.setFillColor(sf::Color(255, 255, 255, 200));
             statusText.setString(game.getCurrentPlayer() == WHITE ? "Checkmate! Black wins!" : "Checkmate! White wins!");
             statusText.setFillColor(sf::Color(255, 0, 0, static_cast<sf::Uint8>(alpha)));
         }
         else if (game.isStalemateState())
         {
+            statusBackground.setFillColor(sf::Color(255, 255, 255, 200));
             statusText.setString("Stalemate! Draw!");
             statusText.setFillColor(sf::Color(0, 0, 255, static_cast<sf::Uint8>(alpha)));
         }
         else if (game.isInCheck(game.getCurrentPlayer()))
         {
+            statusBackground.setFillColor(sf::Color(255, 255, 255, 200));
             statusText.setString(game.getCurrentPlayer() == WHITE ? "White is in check!" : "Black is in check!");
             statusText.setFillColor(sf::Color(255, 0, 0, static_cast<sf::Uint8>(alpha)));
         }
@@ -427,6 +431,7 @@ int main()
         {
             statusText.setString("");
             statusText.setFillColor(sf::Color(0, 0, 0, 0));
+            statusBackground.setFillColor(sf::Color(0, 0, 0, 0));
         }
         window.draw(statusBackground);
         window.draw(statusText);
