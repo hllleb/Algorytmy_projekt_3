@@ -15,13 +15,15 @@ endif(WIN32)
 
 find_package(SFML 2 COMPONENTS graphics audio REQUIRED)
 
-add_executable(projekt3 main.cpp
-        Move.h
-        PieceType.h
-        Color.h
-        Piece.h
-        Logger.h
-        ChessGame.h
+add_executable(projekt3 src/main.cpp
+        src/Move.h
+        src/PieceType.h
+        src/Color.h
+        src/Piece.h
+        src/Logger.h
+        src/ChessGame.h
+        src/GameState.h
+        src/TranspositionEntry.h
 )
 target_link_libraries(projekt3 sfml-graphics sfml-audio)
 

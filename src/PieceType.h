@@ -1,0 +1,9 @@
+#ifndef PROJEKT3_PIECETYPE_H
+#define PROJEKT3_PIECETYPE_H
+
+enum PieceType
+{
+    PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
+};
+
+#endif //PROJEKT3_PIECETYPE_H
