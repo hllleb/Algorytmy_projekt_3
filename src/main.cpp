@@ -143,20 +143,22 @@ int main()
                     { // Obszar paska promocji
                         if (x >= 200 && x < 300)
                         { // Królowa
-                            game.promotePawn(QUEEN);
+                            game.setPromotionChoice(QUEEN);
                         }
                         else if (x >= 300 && x < 400)
                         { // Wieża
-                            game.promotePawn(ROOK);
+                            game.setPromotionChoice(ROOK);
                         }
                         else if (x >= 400 && x < 500)
                         { // Goniec
-                            game.promotePawn(BISHOP);
+                            game.setPromotionChoice(BISHOP);
                         }
                         else if (x >= 500 && x < 600)
                         { // Skoczek
-                            game.promotePawn(KNIGHT);
+                            game.setPromotionChoice(KNIGHT);
                         }
+
+                        game.promotePawn();
                         if (!game.isGameOver() && game.getCurrentPlayer() == BLACK && !isAnimating)
                         {
                             isWaitingForAIMove = true;
@@ -264,6 +266,8 @@ int main()
                 animationClock.restart();
                 lastOpponentMove = aiMove;
                 game.makeMove(aiMove);
+                if (game.isPromotionPending())
+                    game.promotePawn();
             }
             else
             {

@@ -41,6 +41,42 @@ private:
     // Killer moves (po dwa na każdą głębokość)
     std::vector<std::vector<Move>> killerMoves;
 
+    const int CHECK_BONUS = 400;
+    const int CHECKMATE_BONUS = 999999;
+    const int PROMOTION_BONUS = 1500; // Promote as soon as possible
+    const int REPETITION_PENALTY = 8000; // Heavier than before
+    const int THREAT_KING_BONUS = 400; // Nearby attackers
+    const int SAFE_CAPTURE_BONUS = 5000; // Safe capture
+    const int KING_SAFETY_BONUS = 200; // King safety
+
+    const int PAWN_WEIGHT = 100;
+    const int KNIGHT_WEIGHT = 320;
+    const int BISHOP_WEIGHT = 330;
+    const int ROOK_WEIGHT = 500;
+    const int QUEEN_WEIGHT = 900;
+    const int KING_WEIGHT = 5000;
+
+    const int CAPTURE_BONUS_MULTIPLIER = 100;
+
+    int materialSum() {
+        int sum = 0;
+        for (int i=0; i<8; ++i) for (int j=0; j<8; ++j) {
+                Piece p = board[i][j];
+                int v = 0;
+                switch (p.type) {
+                    case PAWN: v = PAWN_WEIGHT; break;
+                    case KNIGHT: v = KNIGHT_WEIGHT; break;
+                    case BISHOP: v = BISHOP_WEIGHT; break;
+                    case ROOK: v = ROOK_WEIGHT; break;
+                    case QUEEN: v = QUEEN_WEIGHT; break;
+                    default: v = 0;
+                }
+                if (p != EMPTY_PIECE)
+                    sum += (p.color == currentPlayer ? v : -v);
+            }
+        return sum;
+    }
+
     // Inicjalizacja księgi debiutów
     void initializeOpeningBook()
     {
@@ -145,17 +181,17 @@ private:
         switch (target.type)
         {
             case PAWN:
-                return 100;
+                return PAWN_WEIGHT;
             case KNIGHT:
-                return 300;
+                return KNIGHT_WEIGHT;
             case BISHOP:
-                return 300;
+                return BISHOP_WEIGHT;
             case ROOK:
-                return 500;
+                return ROOK_WEIGHT;
             case QUEEN:
-                return 900;
+                return QUEEN_WEIGHT;
             case KING:
-                return 10000;
+                return KING_WEIGHT;
             default:
                 return 0;
         }
@@ -275,6 +311,9 @@ public:
         initializeOpeningBook();
         killerMoves.resize(MAX_DEPTH + 1, std::vector<Move>(2, Move(-1,-1,-1,-1)));
     }
+
+    PieceType getPromotionChoice() const { return promotionChoice; }
+    void setPromotionChoice(const PieceType& type) { promotionChoice = type; }
 
     int getEnPassantTargetX()
     {
@@ -525,7 +564,15 @@ public:
                 if (abs(move.fromY - move.toY) == 1 && move.toX == move.fromX + direction &&
                     (target != EMPTY_PIECE || (move.toX == enPassantTargetX && move.toY == enPassantTargetY)))
                 {
-                    validPieceMove = true;
+                    if (target != EMPTY_PIECE)
+                        validPieceMove = true;
+                    else if (move.toX == enPassantTargetX && move.toY == enPassantTargetY)
+                    {
+                        int capturedPawnX = move.fromX;
+                        if (isValidPosition(capturedPawnX, move.toY) && board[capturedPawnX][move.toY].type == PAWN &&
+                            board[capturedPawnX][move.toY].color != piece.color)
+                            validPieceMove = true;
+                    }
                 }
 
                 break;
@@ -767,7 +814,13 @@ public:
         }
         if (piece.type == PAWN && move.toX == enPassantTargetX && move.toY == enPassantTargetY)
         {
-            board[move.toX - direction][move.toY] = EMPTY_PIECE;
+            int capturedPawnX = move.toX - direction;
+            if (isValidPosition(capturedPawnX, move.toY) &&
+                board[capturedPawnX][move.toY].type == PAWN &&
+                board[capturedPawnX][move.toY].color != piece.color)
+            {
+                board[capturedPawnX][move.toY] = EMPTY_PIECE;
+            }
         }
 
         if (piece.type == KING && abs(move.toY - move.fromY) == 2)
@@ -784,15 +837,15 @@ public:
             }
         }
 
+        board[move.toX][move.toY] = board[move.fromX][move.fromY];
+        board[move.fromX][move.fromY] = EMPTY_PIECE;
+
         if (piece.type == PAWN && (move.toX == 0 || move.toX == 7))
         {
             isPawnPromotionPending = true;
             promotionX = move.toX;
             promotionY = move.toY;
         }
-
-        board[move.toX][move.toY] = board[move.fromX][move.fromY];
-        board[move.fromX][move.fromY] = EMPTY_PIECE;
 
         std::string notation = generateAlgebraicNotation(move, state);
         moveHistory.emplace_back(move.fromX, move.fromY, move.toX, move.toY, notation);
@@ -929,12 +982,13 @@ public:
         return isPawnPromotionPending;
     }
 
-    void promotePawn(PieceType type)
+    void promotePawn()
     {
-        if (isPawnPromotionPending && (type == QUEEN || type == ROOK || type == BISHOP || type == KNIGHT))
+        if (isPawnPromotionPending && (promotionChoice == QUEEN || promotionChoice == ROOK || promotionChoice == BISHOP || promotionChoice == KNIGHT))
         {
-            board[promotionX][promotionY] = Piece(type, currentPlayer == WHITE ? BLACK : WHITE);
-            logger.log("Pawn promoted to " + std::to_string(type), Logger::INFO);
+            Color color = board[promotionX][promotionY].color;
+            board[promotionX][promotionY] = Piece(promotionChoice, color);
+            logger.log("Pawn promoted to " + std::to_string(promotionChoice), Logger::INFO);
             isPawnPromotionPending = false;
             promotionX = -1;
             promotionY = -1;
@@ -1373,22 +1427,22 @@ public:
                 switch (piece.type)
                 {
                     case PAWN:
-                        value = 100;
+                        value = PAWN_WEIGHT;
                         break;
                     case KNIGHT:
-                        value = 320;
+                        value = KING_WEIGHT;
                         break;
                     case BISHOP:
-                        value = 330;
+                        value = BISHOP_WEIGHT;
                         break;
                     case ROOK:
-                        value = 500;
+                        value = ROOK_WEIGHT;
                         break;
                     case QUEEN:
-                        value = 900;
+                        value = QUEEN_WEIGHT;
                         break;
                     case KING:
-                        value = 10000;
+                        value = KING_WEIGHT;
                         break;
                     default:
                         value = 0;
@@ -1415,12 +1469,12 @@ public:
                 int value = 0;
                 switch (piece.type)
                 {
-                    case PAWN: value = 100; break;
-                    case KNIGHT: value = 320; break;
-                    case BISHOP: value = 330; break;
-                    case ROOK: value = 500; break;
-                    case QUEEN: value = 900; break;
-                    case KING: value = 10000; break;
+                    case PAWN: value = PAWN_WEIGHT; break;
+                    case KNIGHT: value = KING_WEIGHT; break;
+                    case BISHOP: value = BISHOP_WEIGHT; break;
+                    case ROOK: value = ROOK_WEIGHT; break;
+                    case QUEEN: value = QUEEN_WEIGHT; break;
+                    case KING: value = KING_WEIGHT; break;
                     default: value = 0;
                 }
 
@@ -1435,18 +1489,30 @@ public:
                 {
                     kingX[piece.color] = i;
                     kingY[piece.color] = j;
+
+                    // Bonus for pieces attacking squares near the enemy king
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            int kx = kingX[1 - currentPlayer], ky = kingY[1 - currentPlayer];
+                            int ax = kx + dx, ay = ky + dy;
+                            if (isValidPosition(ax, ay) && board[ax][ay] != EMPTY_PIECE && board[ax][ay].color == currentPlayer) {
+                                score += THREAT_KING_BONUS;
+                            }
+                        }
+                    }
+
                     if (!isEndgame)
                     {
                         // Kara za wczesne ruszanie królem
                         if (piece.color == WHITE && i < 7 && isOpening)
-                            kingSafety -= 100;
+                            kingSafety -= KING_SAFETY_BONUS;
                         else if (piece.color == BLACK && i > 0 && isOpening)
-                            kingSafety -= 100;
+                            kingSafety -= KING_SAFETY_BONUS;
                         // Premia za roszadę
                         if (piece.color == WHITE && (whiteCanCastleKingside || whiteCanCastleQueenside))
-                            kingSafety += 100;
+                            kingSafety += KING_SAFETY_BONUS;
                         else if (piece.color == BLACK && (blackCanCastleKingside || blackCanCastleQueenside))
-                            kingSafety += 100;
+                            kingSafety += KING_SAFETY_BONUS;
                     }
                     else
                     {
@@ -1504,6 +1570,13 @@ public:
                     {
                         int rank = piece.color == WHITE ? 7 - i : i;
                         passedPawnBonus += 50 + rank * 20; // Bonus increases with rank
+                    }
+
+                    // Stronger bonus for advanced pawn ready for promotion
+                    int promotionRank = (piece.color == WHITE) ? 0 : 7;
+                    int advance = abs(i - promotionRank);
+                    if (advance <= 2) {
+                        score += (piece.color == WHITE ? 1 : -1) * (PROMOTION_BONUS / (advance + 1));
                     }
                 }
 
@@ -1586,20 +1659,28 @@ public:
         mobilityScore += getAllPossibleMoves(WHITE).size() * (isOpening ? 30 : 15);
         mobilityScore -= getAllPossibleMoves(BLACK).size() * (isOpening ? 30 : 15);
 
-        // Kara za powtarzanie ruchów
-        int repetitionPenalty = 0;
-        for (const auto& [_, count] : moveRepetitionCount)
-        {
-            if (count > 2)
-                repetitionPenalty -= 10 * (count - 2);
+        // Reward for giving check to opponent, bigger for mate
+        if (isInCheck(currentPlayer == WHITE ? BLACK : WHITE)) {
+            score += CHECK_BONUS;
+            // If opponent has no legal moves: checkmate!
+            if (getAllPossibleMoves(currentPlayer == WHITE ? BLACK : WHITE).empty()) {
+                score += CHECKMATE_BONUS;
+            }
         }
-        repetitionPenalty = (currentPlayer == WHITE) ? repetitionPenalty : -repetitionPenalty;
+        // Penalize being in check
+        if (isInCheck(currentPlayer)) {
+            score -= CHECK_BONUS;
+        }
 
-        // Dodatkowa ocena szacha
-        if (isInCheck(currentPlayer == WHITE ? BLACK : WHITE))
-            score += 150; // Bonus za szach
-        if (isInCheck(currentPlayer))
-            score -= 150; // Kara za bycie w szachu
+        // Heavier penalty for repeating positions
+        for (const auto& [_, count] : moveRepetitionCount) {
+            if (count >= 2) score -= REPETITION_PENALTY * (count-1);  // make it at least 4x larger!
+            if (count >= 3) score -= 1000000; // Near-infinite penalty for 3-fold!
+        }
+
+        // Clamp insane values except in clear mate/draw
+        if (score > 20000 && score < CHECKMATE_BONUS) score = 20000;
+        if (score < -20000 && score > -CHECKMATE_BONUS) score = -20000;
 
         return score + mobilityScore + centerControl + kingSafety + pawnStructure + pieceActivity + development + threatPenalty + passedPawnBonus;
     }
@@ -1695,7 +1776,7 @@ public:
         {
             if (isInCheck(maximizingPlayer ? currentPlayer : (currentPlayer == WHITE ? BLACK : WHITE)))
             {
-                return maximizingPlayer ? INT_MIN + depth : INT_MAX - depth;
+                return maximizingPlayer ? -CHECKMATE_BONUS + depth : CHECKMATE_BONUS - depth;
             }
             return 0;
         }
@@ -1703,17 +1784,18 @@ public:
         // Sortowanie ruchów
         std::sort(moves.begin(), moves.end(), [this, depth](const Move &a, const Move &b)
         {
-            int scoreA = getCaptureValue(a) * 100;
-            int scoreB = getCaptureValue(b) * 100;
-            // Sprawdzenie szacha
+            int scoreA = getCaptureValue(a) * CAPTURE_BONUS_MULTIPLIER;
+            int scoreB = getCaptureValue(b) * CAPTURE_BONUS_MULTIPLIER;
             GameState stateA = makeTemporaryMove(a);
             bool isCheckA = isInCheck(currentPlayer);
+            bool isMateA = isCheckA && getAllPossibleMoves(currentPlayer).empty();
             undoMove(stateA);
+            scoreA += isMateA ? 999999 : (isCheckA ? 800 : 0);
             GameState stateB = makeTemporaryMove(b);
             bool isCheckB = isInCheck(currentPlayer);
+            bool isMateB = isCheckB && getAllPossibleMoves(currentPlayer).empty();
             undoMove(stateB);
-            scoreA += isCheckA ? 100 : 0;
-            scoreB += isCheckB ? 100 : 0;
+            scoreB += isMateB ? 999999 : (isCheckB ? 800 : 0);
             // Rozwój figur
             if (moveHistory.size() < 10)
             {
@@ -1734,6 +1816,7 @@ public:
                 scoreA += 200;
             if (b == killerMoves[depth][0] || b == killerMoves[depth][1])
                 scoreB += 200;
+
             return scoreA > scoreB;
         });
 
@@ -1772,7 +1855,7 @@ public:
                     }
                     undoMove(tempState);
                     if (isSafe)
-                        eval += 200; // Bonus for safe captures
+                        eval += SAFE_CAPTURE_BONUS; // Bonus for safe captures
                 }
 
                 if (eval > maxEval)
@@ -1791,6 +1874,13 @@ public:
                     break;
                 }
             }
+
+            int before = materialSum();
+            GameState state = makeTemporaryMove(bestMove);
+            int after = materialSum();
+            undoMove(state);
+            if (after > before) maxEval += (after - before) * 10; // Or more
+
             // Zapis do tabeli transpozycji
             transpositionTable[positionKey] = {maxEval, depth, bestMove};
             return maxEval;
@@ -1815,7 +1905,24 @@ public:
                     {
                         for (int y = 0; y < 8; ++y)
                         {
-                            if (board[x][y] != EMPTY_PIECE && board[x][y].color != currentPlayer)
+                            if (board[x][y].type == QUEEN && board[x][y].color == currentPlayer)
+                            {
+                                for (int ax = 0; ax < 8; ++ax)
+                                {
+                                    for (int ay = 0; ay < 8; ++ay)
+                                    {
+                                        if (board[ax][ay] != EMPTY_PIECE && board[ax][ay].color != currentPlayer)
+                                        {
+                                            Move attackMove(ax, ay, x, y);
+                                            if (isValidAttackMove(attackMove, board[ax][ay].color))
+                                            {
+                                                eval -= 4 * QUEEN_WEIGHT; // Or even 10x for extreme caution!
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else if (board[x][y] != EMPTY_PIECE && board[x][y].color != currentPlayer)
                             {
                                 Move attackMove(x, y, move.toX, move.toY);
                                 if (isValidAttackMove(attackMove, board[x][y].color))
@@ -1869,16 +1976,18 @@ public:
             bestMoves.clear();
             std::sort(moves.begin(), moves.end(), [this](const Move &a, const Move &b)
             {
-                int scoreA = getCaptureValue(a) * 100;
-                int scoreB = getCaptureValue(b) * 100;
+                int scoreA = getCaptureValue(a) * CAPTURE_BONUS_MULTIPLIER;
+                int scoreB = getCaptureValue(b) * CAPTURE_BONUS_MULTIPLIER;
                 GameState stateA = makeTemporaryMove(a);
                 bool isCheckA = isInCheck(currentPlayer);
+                bool isMateA = isCheckA && getAllPossibleMoves(currentPlayer).empty();
                 undoMove(stateA);
+                scoreA += isMateA ? 999999 : (isCheckA ? 800 : 0);
                 GameState stateB = makeTemporaryMove(b);
                 bool isCheckB = isInCheck(currentPlayer);
+                bool isMateB = isCheckB && getAllPossibleMoves(currentPlayer).empty();
                 undoMove(stateB);
-                scoreA += isCheckA ? 100 : 0;
-                scoreB += isCheckB ? 100 : 0;
+                scoreB += isMateB ? 999999 : (isCheckB ? 800 : 0);
                 return scoreA > scoreB;
             });
 
@@ -2018,7 +2127,6 @@ public:
             isPawnPromotionPending = true;
             promotionX = bestMove.toX;
             promotionY = bestMove.toY;
-            promotePawn(promotionChoice);
         }
 
         return bestMove;
@@ -2028,7 +2136,6 @@ public:
     {
         return currentPlayer;
     }
-    //Piece getPiece(int x, int y) const { return board[x][y]; }
 };
 
 #endif //PROJEKT3_CHESSGAME_H
