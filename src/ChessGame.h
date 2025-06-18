@@ -58,22 +58,41 @@ private:
 
     const int CAPTURE_BONUS_MULTIPLIER = 100;
 
-    int materialSum() {
+    int materialSum()
+    {
         int sum = 0;
-        for (int i=0; i<8; ++i) for (int j=0; j<8; ++j) {
+        for (int i = 0; i < 8; ++i)
+        {
+            for (int j = 0; j < 8; ++j)
+            {
                 Piece p = board[i][j];
                 int v = 0;
-                switch (p.type) {
-                    case PAWN: v = PAWN_WEIGHT; break;
-                    case KNIGHT: v = KNIGHT_WEIGHT; break;
-                    case BISHOP: v = BISHOP_WEIGHT; break;
-                    case ROOK: v = ROOK_WEIGHT; break;
-                    case QUEEN: v = QUEEN_WEIGHT; break;
-                    default: v = 0;
+                switch (p.type)
+                {
+                    case PAWN:
+                        v = PAWN_WEIGHT;
+                        break;
+                    case KNIGHT:
+                        v = KNIGHT_WEIGHT;
+                        break;
+                    case BISHOP:
+                        v = BISHOP_WEIGHT;
+                        break;
+                    case ROOK:
+                        v = ROOK_WEIGHT;
+                        break;
+                    case QUEEN:
+                        v = QUEEN_WEIGHT;
+                        break;
+                    default:
+                        v = 0;
                 }
                 if (p != EMPTY_PIECE)
+                {
                     sum += (p.color == currentPlayer ? v : -v);
+                }
             }
+        }
         return sum;
     }
 
@@ -82,17 +101,26 @@ private:
     {
         // Proste debiuty, np. 1. e4 e5, 1. d4 d5
         openingBook["rnbqkbnr/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] = Move(6, 4, 4, 4, "e4"); // 1. e4
-        openingBook["rnbqkbnr/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKBNR w KQkq e6 0 1"] = Move(6, 3, 4, 3, "d4"); // 1. e4 e5 2. d4
-        openingBook["rnbqkbnr/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKBNR b KQkq - 0 1"] = Move(1, 4, 3, 4, "e5"); // 1. e4 e5
-        openingBook["rnbqkbnr/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKBNR b KQkq - 0 1"] = Move(1, 3, 3, 3, "d5"); // 1. e4 e5 2. d4 d5
+        openingBook["rnbqkbnr/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKBNR w KQkq e6 0 1"] = Move(6, 3, 4, 3,
+                                                                                                "d4"); // 1. e4 e5 2. d4
+        openingBook["rnbqkbnr/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKBNR b KQkq - 0 1"] = Move(1, 4, 3, 4,
+                                                                                           "e5"); // 1. e4 e5
+        openingBook["rnbqkbnr/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKBNR b KQkq - 0 1"] = Move(1, 3, 3, 3,
+                                                                                               "d5"); // 1. e4 e5 2. d4 d5
 
         // Additional openings
-        openingBook["rnbqkbnr/pppp1ppp/5n2/5p2/4P3/5N2/PPPP1PPP/RNBQKBNR b KQkq - 0 1"] = Move(1, 5, 3, 5, "f5"); // 1. e4 f5 (Dutch Defense)
-        openingBook["rnbqkb1r/pppp1ppp/5n2/5p2/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 1 2"] = Move(6, 5, 4, 5, "f3"); // 1. e4 f5 2. f3
-        openingBook["rnbqkbnr/pppppppp/8/8/4P3/8/PPPPPPPP/RNBQKBNR b KQkq e3 0 1"] = Move(6, 2, 4, 2, "c4"); // 1. e4 c4 (unorthodox)
-        openingBook["rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"] = Move(1, 2, 3, 2, "c5"); // 1. e4 e5 2. Nf3 c5 (Sicilian Defense)
-        openingBook["rnbqkb1r/pp1ppppp/5n2/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq c6 0 2"] = Move(6, 3, 4, 3, "d4"); // 1. e4 c5 2. d4
-        openingBook["rnbqkbnr/pp1ppppp/5n2/5p2/4P3/8/PPPPPPPP/RNBQKBNR w KQkq - 0 2"] = Move(6, 5, 4, 5, "f4"); // 1. e4 f5 2. f4 (From's Gambit)
+        openingBook["rnbqkbnr/pppp1ppp/5n2/5p2/4P3/5N2/PPPP1PPP/RNBQKBNR b KQkq - 0 1"] = Move(1, 5, 3, 5,
+                                                                                               "f5"); // 1. e4 f5 (Dutch Defense)
+        openingBook["rnbqkb1r/pppp1ppp/5n2/5p2/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 1 2"] = Move(6, 5, 4, 5,
+                                                                                               "f3"); // 1. e4 f5 2. f3
+        openingBook["rnbqkbnr/pppppppp/8/8/4P3/8/PPPPPPPP/RNBQKBNR b KQkq e3 0 1"] = Move(6, 2, 4, 2,
+                                                                                          "c4"); // 1. e4 c4 (unorthodox)
+        openingBook["rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"] = Move(1, 2, 3, 2,
+                                                                                               "c5"); // 1. e4 e5 2. Nf3 c5 (Sicilian Defense)
+        openingBook["rnbqkb1r/pp1ppppp/5n2/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq c6 0 2"] = Move(6, 3, 4, 3,
+                                                                                                "d4"); // 1. e4 c5 2. d4
+        openingBook["rnbqkbnr/pp1ppppp/5n2/5p2/4P3/8/PPPPPPPP/RNBQKBNR w KQkq - 0 2"] = Move(6, 5, 4, 5,
+                                                                                             "f4"); // 1. e4 f5 2. f4 (From's Gambit)
     }
 
     // Generowanie klucza pozycji dla tabeli transpozycji
@@ -126,7 +154,10 @@ private:
                 key += std::to_string(emptyCount);
                 emptyCount = 0;
             }
-            if (i < 7) key += "/";
+            if (i < 7)
+            {
+                key += "/";
+            }
         }
 
         // Kolor, który ma ruch
@@ -134,10 +165,22 @@ private:
 
         // Prawa do roszady
         std::string castling = "";
-        if (whiteCanCastleKingside) castling += "K";
-        if (whiteCanCastleQueenside) castling += "Q";
-        if (blackCanCastleKingside) castling += "k";
-        if (blackCanCastleQueenside) castling += "q";
+        if (whiteCanCastleKingside)
+        {
+            castling += "K";
+        }
+        if (whiteCanCastleQueenside)
+        {
+            castling += "Q";
+        }
+        if (blackCanCastleKingside)
+        {
+            castling += "k";
+        }
+        if (blackCanCastleQueenside)
+        {
+            castling += "q";
+        }
         key += " " + (castling.empty() ? "-" : castling);
 
         // Pole en passant
@@ -160,13 +203,20 @@ private:
     {
         switch (type)
         {
-            case PAWN: return 'p';
-            case KNIGHT: return 'n';
-            case BISHOP: return 'b';
-            case ROOK: return 'r';
-            case QUEEN: return 'q';
-            case KING: return 'k';
-            default: return '.';
+            case PAWN:
+                return 'p';
+            case KNIGHT:
+                return 'n';
+            case BISHOP:
+                return 'b';
+            case ROOK:
+                return 'r';
+            case QUEEN:
+                return 'q';
+            case KING:
+                return 'k';
+            default:
+                return '.';
         }
     }
 
@@ -197,42 +247,64 @@ private:
         }
     }
 
-    std::string generateAlgebraicNotation(const Move& move, const GameState& state)
+    std::string generateAlgebraicNotation(const Move &move, const GameState &state)
     {
         Piece piece = state.movedPiece;
-        if (piece == EMPTY_PIECE) return "";
+        if (piece == EMPTY_PIECE)
+        {
+            return "";
+        }
 
         std::string notation;
         std::string pieceSymbol;
         sf::String str;
-        switch (piece.type) {
-            case KNIGHT: pieceSymbol = "N"; break;
-            case BISHOP: pieceSymbol = "B"; break;
-            case ROOK: pieceSymbol = "R"; break;
-            case QUEEN: pieceSymbol = "Q"; break;
-            case KING: pieceSymbol = "K"; break;
-            default: break;
+        switch (piece.type)
+        {
+            case KNIGHT:
+                pieceSymbol = "N";
+                break;
+            case BISHOP:
+                pieceSymbol = "B";
+                break;
+            case ROOK:
+                pieceSymbol = "R";
+                break;
+            case QUEEN:
+                pieceSymbol = "Q";
+                break;
+            case KING:
+                pieceSymbol = "K";
+                break;
+            default:
+                break;
         }
 
-        if(piece.color == BLACK)
+        if (piece.color == BLACK)
         {
             pieceSymbol[0] = tolower(pieceSymbol[0]);
         }
 
-        notation+= pieceSymbol;
+        notation += pieceSymbol;
 
-        if (piece.type == KING && abs(move.toY - move.fromY) == 2) {
+        if (piece.type == KING && abs(move.toY - move.fromY) == 2)
+        {
             return move.toY > move.fromY ? "O-O" : "O-O-O";
         }
 
-        if (piece.type != PAWN) {
+        if (piece.type != PAWN)
+        {
             notation += char('a' + move.fromY);
             notation += std::to_string(8 - move.fromX);
-        } else if (state.capturedPiece != EMPTY_PIECE || (move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)) {
+        }
+        else if (state.capturedPiece != EMPTY_PIECE ||
+                 (move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY))
+        {
             notation += char('a' + move.fromY);
         }
 
-        if (state.capturedPiece != EMPTY_PIECE || (piece.type == PAWN && move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)) {
+        if (state.capturedPiece != EMPTY_PIECE ||
+            (piece.type == PAWN && move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY))
+        {
             notation += "x";
         }
 
@@ -241,18 +313,29 @@ private:
 
         bool isPromotion = (piece.type == PAWN && (move.toX == 0 || move.toX == 7));
         std::string promotionNotation;
-        if (isPromotion) {
+        if (isPromotion)
+        {
             promotionNotation += "=";
             pieceSymbol = "";
-            switch (board[move.toX][move.toY].type) {
-                case QUEEN: pieceSymbol = "Q"; break;
-                case ROOK: pieceSymbol = "R"; break;
-                case BISHOP: pieceSymbol = "B"; break;
-                case KNIGHT: pieceSymbol = "N"; break;
-                default: break;
+            switch (board[move.toX][move.toY].type)
+            {
+                case QUEEN:
+                    pieceSymbol = "Q";
+                    break;
+                case ROOK:
+                    pieceSymbol = "R";
+                    break;
+                case BISHOP:
+                    pieceSymbol = "B";
+                    break;
+                case KNIGHT:
+                    pieceSymbol = "N";
+                    break;
+                default:
+                    break;
             }
 
-            if(board[move.toX][move.toY].color == BLACK)
+            if (board[move.toX][move.toY].color == BLACK)
             {
                 pieceSymbol[0] = tolower(pieceSymbol[0]);
             }
@@ -270,7 +353,8 @@ private:
         board[move.fromX][move.fromY] = tempFrom;
         board[move.toX][move.toY] = tempTo;
 
-        if (isCheck) {
+        if (isCheck)
+        {
             notation += isMate ? "#" : "+";
         }
 
@@ -281,20 +365,30 @@ private:
     {
         int bestEval = maximizingPlayer ? INT_MIN : INT_MAX;
         PieceType options[] = {QUEEN, ROOK, BISHOP, KNIGHT};
-        for (PieceType option : options)
+        for (PieceType option: options)
         {
             board[move.toX][move.toY] = Piece(option, board[move.toX][move.toY].color);
             int eval = minimax(depth, alpha, beta, !maximizingPlayer);
             if (maximizingPlayer && eval > bestEval)
+            {
                 bestEval = eval;
+            }
             else if (!maximizingPlayer && eval < bestEval)
+            {
                 bestEval = eval;
+            }
             if (maximizingPlayer)
+            {
                 alpha = std::max(alpha, eval);
+            }
             else
+            {
                 beta = std::min(beta, eval);
+            }
             if (beta <= alpha)
+            {
                 break;
+            }
         }
         board[move.toX][move.toY] = Piece(options[0], board[move.toX][move.toY].color); // Przywróć domyślną promocję
         return bestEval;
@@ -309,11 +403,18 @@ public:
     {
         initializeBoard();
         initializeOpeningBook();
-        killerMoves.resize(MAX_DEPTH + 1, std::vector<Move>(2, Move(-1,-1,-1,-1)));
+        killerMoves.resize(MAX_DEPTH + 1, std::vector<Move>(2, Move(-1, -1, -1, -1)));
     }
 
-    PieceType getPromotionChoice() const { return promotionChoice; }
-    void setPromotionChoice(const PieceType& type) { promotionChoice = type; }
+    PieceType getPromotionChoice() const
+    {
+        return promotionChoice;
+    }
+
+    void setPromotionChoice(const PieceType &type)
+    {
+        promotionChoice = type;
+    }
 
     int getEnPassantTargetX()
     {
@@ -565,13 +666,17 @@ public:
                     (target != EMPTY_PIECE || (move.toX == enPassantTargetX && move.toY == enPassantTargetY)))
                 {
                     if (target != EMPTY_PIECE)
+                    {
                         validPieceMove = true;
+                    }
                     else if (move.toX == enPassantTargetX && move.toY == enPassantTargetY)
                     {
                         int capturedPawnX = move.fromX;
                         if (isValidPosition(capturedPawnX, move.toY) && board[capturedPawnX][move.toY].type == PAWN &&
                             board[capturedPawnX][move.toY].color != piece.color)
+                        {
                             validPieceMove = true;
+                        }
                     }
                 }
 
@@ -805,22 +910,26 @@ public:
             }
         }
 
-        enPassantTargetX = -1;
-        enPassantTargetY = -1;
+        if (piece.type == PAWN && move.toX == enPassantTargetX && move.toY == enPassantTargetY)
+        {
+            int captureDir = (piece.color == WHITE) ? 1 : -1;
+            int capturedPawnX = move.toX + captureDir;
+            if (isValidPosition(capturedPawnX, move.toY) && board[capturedPawnX][move.toY].type == PAWN &&
+                board[capturedPawnX][move.toY].color != piece.color)
+            {
+                board[capturedPawnX][move.toY] = EMPTY_PIECE;
+            }
+        }
+
         if (piece.type == PAWN && move.fromX == startRow && abs(move.toX - move.fromX) == 2)
         {
             enPassantTargetX = move.fromX + direction;
             enPassantTargetY = move.fromY;
         }
-        if (piece.type == PAWN && move.toX == enPassantTargetX && move.toY == enPassantTargetY)
+        else
         {
-            int capturedPawnX = move.toX - direction;
-            if (isValidPosition(capturedPawnX, move.toY) &&
-                board[capturedPawnX][move.toY].type == PAWN &&
-                board[capturedPawnX][move.toY].color != piece.color)
-            {
-                board[capturedPawnX][move.toY] = EMPTY_PIECE;
-            }
+            enPassantTargetX = -1;
+            enPassantTargetY = -1;
         }
 
         if (piece.type == KING && abs(move.toY - move.fromY) == 2)
@@ -851,7 +960,8 @@ public:
         moveHistory.emplace_back(move.fromX, move.fromY, move.toX, move.toY, notation);
 
         // Aktualizacja licznika powtórek ruchów
-        std::string moveKey = std::to_string(move.fromX) + std::to_string(move.fromY) + std::to_string(move.toX) + std::to_string(move.toY);
+        std::string moveKey = std::to_string(move.fromX) + std::to_string(move.fromY) + std::to_string(move.toX) +
+                              std::to_string(move.toY);
         moveRepetitionCount[moveKey]++;
 
         currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
@@ -907,16 +1017,26 @@ public:
             }
         }
 
-        enPassantTargetX = -1;
-        enPassantTargetY = -1;
+        if (state.movedPiece.type == PAWN && move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)
+        {
+            int captureDir = (state.movedPiece.color == WHITE) ? 1 : -1;
+            int capturedPawnX = move.toX + captureDir;
+            if (isValidPosition(capturedPawnX, move.toY) && board[capturedPawnX][move.toY].type == PAWN &&
+                board[capturedPawnX][move.toY].color != state.movedPiece.color)
+            {
+                board[capturedPawnX][move.toY] = EMPTY_PIECE;
+            }
+        }
+
         if (state.movedPiece.type == PAWN && move.fromX == startRow && abs(move.toX - move.fromX) == 2)
         {
             enPassantTargetX = move.fromX + direction;
             enPassantTargetY = move.fromY;
         }
-        if (state.movedPiece.type == PAWN && move.toX == state.enPassantTargetX && move.toY == state.enPassantTargetY)
+        else
         {
-            board[move.toX - direction][move.toY] = EMPTY_PIECE;
+            enPassantTargetX = -1;
+            enPassantTargetY = -1;
         }
 
         if (state.movedPiece.type == KING && abs(move.toY - move.fromY) == 2)
@@ -950,7 +1070,7 @@ public:
             state.move.toY == state.enPassantTargetY)
         {
             int direction = (state.movedPiece.color == WHITE) ? 1 : -1;
-            board[state.move.toX - direction][state.move.toY] = Piece(PAWN, currentPlayer == WHITE ? BLACK : WHITE);
+            board[state.move.toX + direction][state.move.toY] = Piece(PAWN, state.movedPiece.color == WHITE ? BLACK : WHITE);
         }
 
         if (state.movedPiece.type == KING && abs(state.move.toY - state.move.fromY) == 2)
@@ -984,7 +1104,9 @@ public:
 
     void promotePawn()
     {
-        if (isPawnPromotionPending && (promotionChoice == QUEEN || promotionChoice == ROOK || promotionChoice == BISHOP || promotionChoice == KNIGHT))
+        if (isPawnPromotionPending &&
+            (promotionChoice == QUEEN || promotionChoice == ROOK || promotionChoice == BISHOP ||
+             promotionChoice == KNIGHT))
         {
             Color color = board[promotionX][promotionY].color;
             board[promotionX][promotionY] = Piece(promotionChoice, color);
@@ -1464,18 +1586,34 @@ public:
             for (int j = 0; j < 8; j++)
             {
                 Piece piece = board[i][j];
-                if (piece == EMPTY_PIECE) continue;
+                if (piece == EMPTY_PIECE)
+                {
+                    continue;
+                }
 
                 int value = 0;
                 switch (piece.type)
                 {
-                    case PAWN: value = PAWN_WEIGHT; break;
-                    case KNIGHT: value = KING_WEIGHT; break;
-                    case BISHOP: value = BISHOP_WEIGHT; break;
-                    case ROOK: value = ROOK_WEIGHT; break;
-                    case QUEEN: value = QUEEN_WEIGHT; break;
-                    case KING: value = KING_WEIGHT; break;
-                    default: value = 0;
+                    case PAWN:
+                        value = PAWN_WEIGHT;
+                        break;
+                    case KNIGHT:
+                        value = KING_WEIGHT;
+                        break;
+                    case BISHOP:
+                        value = BISHOP_WEIGHT;
+                        break;
+                    case ROOK:
+                        value = ROOK_WEIGHT;
+                        break;
+                    case QUEEN:
+                        value = QUEEN_WEIGHT;
+                        break;
+                    case KING:
+                        value = KING_WEIGHT;
+                        break;
+                    default:
+                        value = 0;
                 }
 
                 // Kontrola centrum
@@ -1491,11 +1629,15 @@ public:
                     kingY[piece.color] = j;
 
                     // Bonus for pieces attacking squares near the enemy king
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        for (int dy = -1; dy <= 1; dy++)
+                        {
                             int kx = kingX[1 - currentPlayer], ky = kingY[1 - currentPlayer];
                             int ax = kx + dx, ay = ky + dy;
-                            if (isValidPosition(ax, ay) && board[ax][ay] != EMPTY_PIECE && board[ax][ay].color == currentPlayer) {
+                            if (isValidPosition(ax, ay) && board[ax][ay] != EMPTY_PIECE &&
+                                board[ax][ay].color == currentPlayer)
+                            {
                                 score += THREAT_KING_BONUS;
                             }
                         }
@@ -1505,14 +1647,22 @@ public:
                     {
                         // Kara za wczesne ruszanie królem
                         if (piece.color == WHITE && i < 7 && isOpening)
+                        {
                             kingSafety -= KING_SAFETY_BONUS;
+                        }
                         else if (piece.color == BLACK && i > 0 && isOpening)
+                        {
                             kingSafety -= KING_SAFETY_BONUS;
+                        }
                         // Premia za roszadę
                         if (piece.color == WHITE && (whiteCanCastleKingside || whiteCanCastleQueenside))
+                        {
                             kingSafety += KING_SAFETY_BONUS;
+                        }
                         else if (piece.color == BLACK && (blackCanCastleKingside || blackCanCastleQueenside))
+                        {
                             kingSafety += KING_SAFETY_BONUS;
+                        }
                     }
                     else
                     {
@@ -1526,11 +1676,17 @@ public:
                 if (isOpening && (piece.type == KNIGHT || piece.type == BISHOP))
                 {
                     if (piece.color == WHITE && i == 7)
+                    {
                         development -= 50; // Kara za nierozwinięte figury
+                    }
                     else if (piece.color == BLACK && i == 0)
+                    {
                         development -= 50;
+                    }
                     else
+                    {
                         development += 30;
+                    }
                 }
 
                 // Aktywność figur
@@ -1538,10 +1694,16 @@ public:
                 {
                     bool openFile = true;
                     for (int k = 0; k < 8; ++k)
+                    {
                         if (board[k][j].type == PAWN)
+                        {
                             openFile = false;
+                        }
+                    }
                     if (openFile)
-                        pieceActivity += 60; // Premia za wieżę na otwartej linii
+                    {
+                        pieceActivity += 60;
+                    } // Premia za wieżę na otwartej linii
                     if (isEndgame && i == (piece.color == WHITE ? 1 : 6))
                         pieceActivity += 50; // Bonus for rook on 7th rank
                 }
@@ -1558,8 +1720,8 @@ public:
                     int direction = (piece.color == WHITE) ? -1 : 1;
                     for (int k = i + direction; k >= 0 && k < 8; k += direction)
                     {
-                        if ((j > 0 && board[k][j-1].type == PAWN && board[k][j-1].color != piece.color) ||
-                            (j < 7 && board[k][j+1].type == PAWN && board[k][j+1].color != piece.color) ||
+                        if ((j > 0 && board[k][j - 1].type == PAWN && board[k][j - 1].color != piece.color) ||
+                            (j < 7 && board[k][j + 1].type == PAWN && board[k][j + 1].color != piece.color) ||
                             (board[k][j].type == PAWN && board[k][j].color != piece.color))
                         {
                             isPassed = false;
@@ -1575,20 +1737,23 @@ public:
                     // Stronger bonus for advanced pawn ready for promotion
                     int promotionRank = (piece.color == WHITE) ? 0 : 7;
                     int advance = abs(i - promotionRank);
-                    if (advance <= 2) {
+                    if (advance <= 2)
+                    {
                         score += (piece.color == WHITE ? 1 : -1) * (PROMOTION_BONUS / (advance + 1));
                     }
                 }
 
                 // Bonus za możliwość bicia
                 std::vector<Move> possibleCaptures = getAllPossibleMoves(piece.color);
-                for (const auto& move : possibleCaptures)
+                for (const auto &move: possibleCaptures)
                 {
                     if (board[move.toX][move.toY] != EMPTY_PIECE && board[move.toX][move.toY].color != piece.color)
                     {
                         int captureValue = getCaptureValue(move);
                         if (captureValue > 0)
-                            pieceActivity += captureValue; // Premia za możliwość bicia
+                        {
+                            pieceActivity += captureValue;
+                        } // Premia za możliwość bicia
                     }
                 }
 
@@ -1624,15 +1789,23 @@ public:
                 Color color = static_cast<Color>(c);
                 // Kara za podwójne pionki
                 if (pawnCount[c][j] > 1)
+                {
                     pawnStructure -= 50 * (pawnCount[c][j] - 1);
+                }
                 // Kara za izolowane pionki
                 bool isolated = true;
                 if (j > 0 && pawnCount[c][j - 1] > 0)
+                {
                     isolated = false;
+                }
                 if (j < 7 && pawnCount[c][j + 1] > 0)
+                {
                     isolated = false;
+                }
                 if (isolated && pawnCount[c][j] > 0)
+                {
                     pawnStructure -= 40;
+                }
                 pawnStructure = (color == WHITE) ? pawnStructure : -pawnStructure;
             }
         }
@@ -1649,7 +1822,9 @@ public:
                 {
                     int nx = kingX[c] + direction, ny = kingY[c] + dj;
                     if (isValidPosition(nx, ny) && board[nx][ny].type == PAWN && board[nx][ny].color == color)
+                    {
                         pawnShield += 60;
+                    }
                 }
                 kingSafety += (color == WHITE) ? pawnShield : -pawnShield;
             }
@@ -1660,44 +1835,68 @@ public:
         mobilityScore -= getAllPossibleMoves(BLACK).size() * (isOpening ? 30 : 15);
 
         // Reward for giving check to opponent, bigger for mate
-        if (isInCheck(currentPlayer == WHITE ? BLACK : WHITE)) {
+        if (isInCheck(currentPlayer == WHITE ? BLACK : WHITE))
+        {
             score += CHECK_BONUS;
             // If opponent has no legal moves: checkmate!
-            if (getAllPossibleMoves(currentPlayer == WHITE ? BLACK : WHITE).empty()) {
+            if (getAllPossibleMoves(currentPlayer == WHITE ? BLACK : WHITE).empty())
+            {
                 score += CHECKMATE_BONUS;
             }
         }
         // Penalize being in check
-        if (isInCheck(currentPlayer)) {
+        if (isInCheck(currentPlayer))
+        {
             score -= CHECK_BONUS;
         }
 
         // Heavier penalty for repeating positions
-        for (const auto& [_, count] : moveRepetitionCount) {
-            if (count >= 2) score -= REPETITION_PENALTY * (count-1);  // make it at least 4x larger!
-            if (count >= 3) score -= 1000000; // Near-infinite penalty for 3-fold!
+        for (const auto &[_, count]: moveRepetitionCount)
+        {
+            if (count >= 2)
+            {
+                score -= REPETITION_PENALTY * (count - 1);
+            }  // make it at least 4x larger!
+            if (count >= 3)
+                score -= 1000000; // Near-infinite penalty for 3-fold!
         }
 
         // Clamp insane values except in clear mate/draw
-        if (score > 20000 && score < CHECKMATE_BONUS) score = 20000;
-        if (score < -20000 && score > -CHECKMATE_BONUS) score = -20000;
+        if (score > 20000 && score < CHECKMATE_BONUS)
+        {
+            score = 20000;
+        }
+        if (score < -20000 && score > -CHECKMATE_BONUS)
+        {
+            score = -20000;
+        }
 
-        return score + mobilityScore + centerControl + kingSafety + pawnStructure + pieceActivity + development + threatPenalty + passedPawnBonus;
+        return score + mobilityScore + centerControl + kingSafety + pawnStructure + pieceActivity + development +
+               threatPenalty + passedPawnBonus;
     }
 
     // New: Quiescence search to evaluate captures beyond depth limit
     int quiescenceSearch(int alpha, int beta, bool maximizingPlayer, int maxDepth)
     {
         int standPat = evaluateBoard();
-        if (maxDepth <= 0) return standPat;
+        if (maxDepth <= 0)
+        {
+            return standPat;
+        }
         if (maximizingPlayer)
         {
-            if (standPat >= beta) return beta;
+            if (standPat >= beta)
+            {
+                return beta;
+            }
             alpha = std::max(alpha, standPat);
         }
         else
         {
-            if (standPat <= alpha) return alpha;
+            if (standPat <= alpha)
+            {
+                return alpha;
+            }
             beta = std::min(beta, standPat);
         }
 
@@ -1707,12 +1906,18 @@ public:
         {
             for (int j = 0; j < 8; j++)
             {
-                if (board[i][j].color != player) continue;
-                std::vector<Move> moves = getAllPossibleMoves(player);
-                for (const auto& move : moves)
+                if (board[i][j].color != player)
                 {
-                    if (board[move.toX][move.toY] != EMPTY_PIECE || (board[i][j].type == PAWN && move.toX == enPassantTargetX && move.toY == enPassantTargetY))
+                    continue;
+                }
+                std::vector<Move> moves = getAllPossibleMoves(player);
+                for (const auto &move: moves)
+                {
+                    if (board[move.toX][move.toY] != EMPTY_PIECE ||
+                        (board[i][j].type == PAWN && move.toX == enPassantTargetX && move.toY == enPassantTargetY))
+                    {
                         captureMoves.push_back(move);
+                    }
                 }
             }
         }
@@ -1722,27 +1927,35 @@ public:
             return getCaptureValue(a) > getCaptureValue(b);
         });
 
-        for (const Move &move : captureMoves)
+        for (const Move &move: captureMoves)
         {
             GameState state = makeTemporaryMove(move);
             int score;
             if (board[move.toX][move.toY].type == PAWN && (move.toX == 0 || move.toX == 7))
+            {
                 score = getBestPromotionEval(move, maxDepth - 1, alpha, beta, !maximizingPlayer);
+            }
             else
+            {
                 score = quiescenceSearch(alpha, beta, !maximizingPlayer, maxDepth - 1);
+            }
             undoMove(state);
 
             if (maximizingPlayer)
             {
                 alpha = std::max(alpha, score);
                 if (alpha >= beta)
+                {
                     break;
+                }
             }
             else
             {
                 beta = std::min(beta, score);
                 if (beta <= alpha)
+                {
                     break;
+                }
             }
         }
 
@@ -1751,7 +1964,7 @@ public:
 
     int minimax(int depth, int alpha, int beta, bool maximizingPlayer)
     {
-        if (depth == 0 )
+        if (depth == 0)
         {
             return quiescenceSearch(alpha, beta, maximizingPlayer, 4); // Quiescence search up to depth 4
         }
@@ -1760,7 +1973,9 @@ public:
         {
             int eval = evaluateBoard();
             if (isInCheck(maximizingPlayer ? currentPlayer : (currentPlayer == WHITE ? BLACK : WHITE)))
+            {
                 eval -= 500;
+            }
             return eval;
         }
 
@@ -1771,7 +1986,8 @@ public:
             return ttEntry->second.value;
         }
 
-        std::vector<Move> moves = getAllPossibleMoves(maximizingPlayer ? currentPlayer : (currentPlayer == WHITE ? BLACK : WHITE));
+        std::vector<Move> moves = getAllPossibleMoves(
+                maximizingPlayer ? currentPlayer : (currentPlayer == WHITE ? BLACK : WHITE));
         if (moves.empty())
         {
             if (isInCheck(maximizingPlayer ? currentPlayer : (currentPlayer == WHITE ? BLACK : WHITE)))
@@ -1802,20 +2018,32 @@ public:
                 Piece pieceA = board[a.fromX][a.fromY];
                 Piece pieceB = board[b.fromX][b.fromY];
                 if (pieceA.type == KNIGHT || pieceA.type == BISHOP)
+                {
                     scoreA += 50;
+                }
                 if (pieceB.type == KNIGHT || pieceB.type == BISHOP)
+                {
                     scoreB += 50;
+                }
                 // Ostrożność z hetmanem
                 if (pieceA.type == QUEEN)
+                {
                     scoreA -= 30;
+                }
                 if (pieceB.type == QUEEN)
+                {
                     scoreB -= 30;
+                }
             }
             // Killer moves
             if (a == (killerMoves[depth][0]) || a == killerMoves[depth][1])
+            {
                 scoreA += 200;
+            }
             if (b == killerMoves[depth][0] || b == killerMoves[depth][1])
+            {
                 scoreB += 200;
+            }
 
             return scoreA > scoreB;
         });
@@ -1824,12 +2052,12 @@ public:
         {
             int maxEval = INT_MIN;
             Move bestMove;
-            for (const Move &move : moves)
+            for (const Move &move: moves)
             {
                 GameState state = makeTemporaryMove(move);
                 int eval = (board[move.toX][move.toY].type == PAWN && (move.toX == 0 || move.toX == 7))
-                           ? getBestPromotionEval(move, depth - 1, alpha, beta, false)
-                           : minimax(depth - 1, alpha, beta, false);
+                           ? getBestPromotionEval(move, depth - 1, alpha, beta, false) : minimax(depth - 1, alpha, beta,
+                                                                                                 false);
                 undoMove(state);
 
                 // New: Bonus for safe captures
@@ -1851,11 +2079,16 @@ public:
                                 }
                             }
                         }
-                        if (!isSafe) break;
+                        if (!isSafe)
+                        {
+                            break;
+                        }
                     }
                     undoMove(tempState);
                     if (isSafe)
-                        eval += SAFE_CAPTURE_BONUS; // Bonus for safe captures
+                    {
+                        eval += SAFE_CAPTURE_BONUS;
+                    } // Bonus for safe captures
                 }
 
                 if (eval > maxEval)
@@ -1879,7 +2112,10 @@ public:
             GameState state = makeTemporaryMove(bestMove);
             int after = materialSum();
             undoMove(state);
-            if (after > before) maxEval += (after - before) * 10; // Or more
+            if (after > before)
+            {
+                maxEval += (after - before) * 10;
+            } // Or more
 
             // Zapis do tabeli transpozycji
             transpositionTable[positionKey] = {maxEval, depth, bestMove};
@@ -1889,12 +2125,12 @@ public:
         {
             int minEval = INT_MAX;
             Move bestMove;
-            for (const Move &move : moves)
+            for (const Move &move: moves)
             {
                 GameState state = makeTemporaryMove(move);
                 int eval = (board[move.toX][move.toY].type == PAWN && (move.toX == 0 || move.toX == 7))
-                           ? getBestPromotionEval(move, depth - 1, alpha, beta, true)
-                           : minimax(depth - 1, alpha, beta, true);
+                           ? getBestPromotionEval(move, depth - 1, alpha, beta, true) : minimax(depth - 1, alpha, beta,
+                                                                                                true);
                 undoMove(state);
 
                 // New: Penalty for moves exposing pieces
@@ -1971,7 +2207,10 @@ public:
             int alpha = INT_MIN;
             int beta = INT_MAX;
             std::vector<Move> moves = getAllPossibleMoves(currentPlayer);
-            if (moves.empty()) return Move(-1, -1, -1, -1);
+            if (moves.empty())
+            {
+                return Move(-1, -1, -1, -1);
+            }
 
             bestMoves.clear();
             std::sort(moves.begin(), moves.end(), [this](const Move &a, const Move &b)
@@ -1991,7 +2230,7 @@ public:
                 return scoreA > scoreB;
             });
 
-            for (const Move &move : moves)
+            for (const Move &move: moves)
             {
                 GameState state = makeTemporaryMove(move);
                 int moveValue;
@@ -2000,7 +2239,7 @@ public:
                     int bestPromotionValue = isMaximizing ? INT_MIN : INT_MAX;
                     PieceType bestPromotion = QUEEN;
                     PieceType options[] = {QUEEN, ROOK, BISHOP, KNIGHT};
-                    for (PieceType option : options)
+                    for (PieceType option: options)
                     {
                         board[move.toX][move.toY] = Piece(option, board[move.toX][move.toY].color);
                         int value = minimax(depth - 1, alpha, beta, !isMaximizing);
@@ -2063,23 +2302,31 @@ public:
                     beta = std::min(beta, moveValue);
                 }
 
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count();
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - startTime).count();
                 if (elapsed / 1000.0f > timeLimit)
+                {
                     break;
+                }
             }
 
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - startTime).count();
             if (elapsed / 1000.0f > timeLimit)
+            {
                 break;
+            }
         }
 
         if (!bestMoves.empty() && bestMoves.size() > 1)
         {
             std::vector<Move> captureMoves;
-            for (const auto& move : bestMoves)
+            for (const auto &move: bestMoves)
             {
                 if (getCaptureValue(move) > 0)
+                {
                     captureMoves.push_back(move);
+                }
             }
             if (!captureMoves.empty())
             {
@@ -2098,7 +2345,10 @@ public:
 
     Move getBestMove(int depth)
     {
-        if (isGameOver()) return Move(-1, -1, -1, -1);
+        if (isGameOver())
+        {
+            return Move(-1, -1, -1, -1);
+        }
 
         // Sprawdzenie księgi debiutów
         std::string positionKey = getPositionKey();
@@ -2114,11 +2364,15 @@ public:
         {
             std::vector<Move> moves = getAllPossibleMoves(currentPlayer);
             if (!moves.empty())
+            {
                 bestMove = moves[0];
+            }
         }
 
-        std::string moveStr = "AI move: (" + std::to_string(bestMove.fromX) + "," + std::to_string(bestMove.fromY) + ") to (" +
-                              std::to_string(bestMove.toX) + "," + std::to_string(bestMove.toY) + ") with value: " + std::to_string(evaluateBoard());
+        std::string moveStr =
+                "AI move: (" + std::to_string(bestMove.fromX) + "," + std::to_string(bestMove.fromY) + ") to (" +
+                std::to_string(bestMove.toX) + "," + std::to_string(bestMove.toY) + ") with value: " +
+                std::to_string(evaluateBoard());
         logger.log(moveStr, Logger::INFO);
 
         Piece piece = board[bestMove.fromX][bestMove.fromY];
