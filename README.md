@@ -102,7 +102,7 @@ Sztuczna inteligencja korzysta z:
 
 ## Zrzuty ekranu
 
-![Przykładowa rozgrywka](images/screen1.png)
+![Przykładowa rozgrywka](images/screen1.jpg)
 
 ---
 
