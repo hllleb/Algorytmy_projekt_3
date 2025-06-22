@@ -1552,7 +1552,7 @@ public:
                         value = PAWN_WEIGHT;
                         break;
                     case KNIGHT:
-                        value = KING_WEIGHT;
+                        value = KNIGHT_WEIGHT;
                         break;
                     case BISHOP:
                         value = BISHOP_WEIGHT;
@@ -1598,7 +1598,7 @@ public:
                         value = PAWN_WEIGHT;
                         break;
                     case KNIGHT:
-                        value = KING_WEIGHT;
+                        value = KNIGHT_WEIGHT;
                         break;
                     case BISHOP:
                         value = BISHOP_WEIGHT;
