@@ -42,12 +42,12 @@ private:
     std::vector<std::vector<Move>> killerMoves;
 
     const int CHECK_BONUS = 400;
-    const int CHECKMATE_BONUS = 999999;
+    const int CHECKMATE_BONUS = 1000000;
     const int PROMOTION_BONUS = 1500; // Promote as soon as possible
-    const int REPETITION_PENALTY = 8000; // Heavier than before
+    const int REPETITION_PENALTY = 100000; // Heavier than before
     const int THREAT_KING_BONUS = 400; // Nearby attackers
-    const int SAFE_CAPTURE_BONUS = 5000; // Safe capture
-    const int KING_SAFETY_BONUS = 200; // King safety
+    const int SAFE_CAPTURE_BONUS = 50000; // Safe capture
+    const int KING_SAFETY_BONUS = 20000; // King safety
 
     const int PAWN_WEIGHT = 100;
     const int KNIGHT_WEIGHT = 320;
@@ -56,7 +56,7 @@ private:
     const int QUEEN_WEIGHT = 900;
     const int KING_WEIGHT = 5000;
 
-    const int CAPTURE_BONUS_MULTIPLIER = 100;
+    const int CAPTURE_BONUS_MULTIPLIER = 500;
 
     int materialSum()
     {
@@ -361,6 +361,28 @@ private:
         return notation + promotionNotation;
     }
 
+    int getKingMobility(Color color) {
+        // Znajdź króla danego koloru na planszy
+        int kingX = -1, kingY = -1;
+        for (int i = 0; i < 8; ++i)
+            for (int j = 0; j < 8; ++j) {
+                if (board[i][j].type == KING && board[i][j].color == color) {
+                    kingX = i; kingY = j;
+                }
+            }
+        if (kingX == -1) return 0; // brak króla - bezpieczeństwo
+
+        int dirs[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{-1,-1},{1,-1},{-1,1}};
+        int moves = 0;
+        for (int d=0; d<8; d++) {
+            int nx = kingX + dirs[d][0], ny = kingY + dirs[d][1];
+            if (nx>=0 && nx<8 && ny>=0 && ny<8 && (board[nx][ny]==EMPTY_PIECE || board[nx][ny].color != board[kingX][kingY].color))
+                moves++;
+        }
+        return moves;
+    }
+
+
     int getBestPromotionEval(const Move &move, int depth, int alpha, int beta, bool maximizingPlayer)
     {
         int bestEval = maximizingPlayer ? INT_MIN : INT_MAX;
@@ -392,6 +414,19 @@ private:
         }
         board[move.toX][move.toY] = Piece(options[0], board[move.toX][move.toY].color); // Przywróć domyślną promocję
         return bestEval;
+    }
+
+    // Sprawdza, czy przeciwnik grozi matem w jednym ruchu
+    bool isMateThreatNextMove(Color opponent) {
+        std::vector<Move> oppMoves = getAllPossibleMoves(opponent);
+        for (const Move& mv : oppMoves) {
+            GameState temp = makeTemporaryMove(mv);
+            bool isMate = isInCheck(currentPlayer) && getAllPossibleMoves(currentPlayer).empty();
+            undoMove(temp);
+            if (isMate)
+                return true;
+        }
+        return false;
     }
 
 public:
@@ -1552,7 +1587,7 @@ public:
                         value = PAWN_WEIGHT;
                         break;
                     case KNIGHT:
-                        value = KING_WEIGHT;
+                        value = KNIGHT_WEIGHT;
                         break;
                     case BISHOP:
                         value = BISHOP_WEIGHT;
@@ -1598,7 +1633,7 @@ public:
                         value = PAWN_WEIGHT;
                         break;
                     case KNIGHT:
-                        value = KING_WEIGHT;
+                        value = KNIGHT_WEIGHT;
                         break;
                     case BISHOP:
                         value = BISHOP_WEIGHT;
@@ -1645,15 +1680,17 @@ public:
 
                     if (!isEndgame)
                     {
-                        // Kara za wczesne ruszanie królem
-                        if (piece.color == WHITE && i < 7 && isOpening)
+                        if(isOpening)
                         {
-                            kingSafety -= KING_SAFETY_BONUS;
+                            if ((piece.color == WHITE && i < 7) || (piece.color == BLACK && i > 0)) {
+                                kingSafety -= 3 * KING_SAFETY_BONUS;
+                            }
+                            // Kara za króla w centrum, zwłaszcza w otwarciu
+                            if ((i >= 3 && i <= 4) && (j >= 3 && j <= 4)) {
+                                kingSafety -= 5 * KING_SAFETY_BONUS;
+                            }
                         }
-                        else if (piece.color == BLACK && i > 0 && isOpening)
-                        {
-                            kingSafety -= KING_SAFETY_BONUS;
-                        }
+
                         // Premia za roszadę
                         if (piece.color == WHITE && (whiteCanCastleKingside || whiteCanCastleQueenside))
                         {
@@ -1737,10 +1774,7 @@ public:
                     // Stronger bonus for advanced pawn ready for promotion
                     int promotionRank = (piece.color == WHITE) ? 0 : 7;
                     int advance = abs(i - promotionRank);
-                    if (advance <= 2)
-                    {
-                        score += (piece.color == WHITE ? 1 : -1) * (PROMOTION_BONUS / (advance + 1));
-                    }
+                    score += (piece.color == WHITE ? 1 : -1) * (7 - advance) * PROMOTION_BONUS;
                 }
 
                 // Bonus za możliwość bicia
@@ -1780,6 +1814,16 @@ public:
                 score += (piece.color == WHITE) ? value : -value;
             }
         }
+
+        // Premia za zamknięcie króla przeciwnika na bandzie/narożniku
+        Color opponent = (currentPlayer == WHITE ? BLACK : WHITE);
+        int kx = kingX[opponent], ky = kingY[opponent];
+        if (kx == 0 || kx == 7) score += 200;
+        if (ky == 0 || ky == 7) score += 200;
+        if ((kx == 0 || kx == 7) && (ky == 0 || ky == 7)) score += 500; // jeszcze większa premia za narożnik!
+
+        int oppKingMobility = getKingMobility(opponent);
+        score += (8 - oppKingMobility) * 500; // Silna premia za ograniczanie króla przeciwnika
 
         // Ocena struktury pionków
         for (int j = 0; j < 8; ++j)
@@ -1853,6 +1897,8 @@ public:
         // Heavier penalty for repeating positions
         for (const auto &[_, count]: moveRepetitionCount)
         {
+            if (count > 1)
+                score -= 10000 * (count-1);  // duża kara za powtórzenia!
             if (count >= 2)
             {
                 score -= REPETITION_PENALTY * (count - 1);
@@ -1870,6 +1916,34 @@ public:
         {
             score = -20000;
         }
+
+        // Kara za cofanie tego samego ruchu (np. a2-a1 a1-a2 wielokrotnie)
+        if (moveHistory.size() >= 4) {
+            const Move& last = moveHistory[moveHistory.size()-1];
+            const Move& prev = moveHistory[moveHistory.size()-2];
+            const Move& prev2 = moveHistory[moveHistory.size()-3];
+            const Move& prev3 = moveHistory[moveHistory.size()-4];
+
+            if (last.fromX == prev.toX && last.fromY == prev.toY &&
+                last.toX == prev.fromX && last.toY == prev.fromY &&
+                prev2.fromX == prev3.toX && prev2.fromY == prev3.toY &&
+                prev2.toX == prev3.fromX && prev2.toY == prev3.fromY &&
+                last.fromX == prev2.toX && last.fromY == prev2.toY &&
+                last.toX == prev2.fromX && last.toY == prev2.fromY) {
+                score -= 50000; // DUŻA kara za ping-ponga tymi samymi figurami
+            }
+        }
+
+        // OGROMNA kara, jeśli grozi mat w jednym ruchu
+        if (isMateThreatNextMove(opponent)) {
+            score -= 1000000; // Preferuj cokolwiek, żeby uniknąć mata!
+        }
+
+        auto pm = getAllPossibleMoves(opponent);
+
+//        if (getAllPossibleMoves(opponent).empty() && !isInCheck(opponent)) {
+//            score -= 500000; // OGROMNA kara za dopuścić do pata!
+//        }
 
         return score + mobilityScore + centerControl + kingSafety + pawnStructure + pieceActivity + development +
                threatPenalty + passedPawnBonus;
@@ -1992,7 +2066,7 @@ public:
         {
             if (isInCheck(maximizingPlayer ? currentPlayer : (currentPlayer == WHITE ? BLACK : WHITE)))
             {
-                return maximizingPlayer ? -CHECKMATE_BONUS + depth : CHECKMATE_BONUS - depth;
+                return maximizingPlayer ? -CHECKMATE_BONUS + 20 * depth : CHECKMATE_BONUS - 20 * depth;
             }
             return 0;
         }
@@ -2043,6 +2117,17 @@ public:
             if (b == killerMoves[depth][0] || b == killerMoves[depth][1])
             {
                 scoreB += 200;
+            }
+
+            // Preferuj ruchy inne niż ostatni ruch przeciwnika (nie odtwarzaj tych samych sekwencji!)
+            if (!moveHistory.empty()) {
+                const Move& lastOpp = moveHistory.back();
+                if (a.fromX == lastOpp.toX && a.fromY == lastOpp.toY && a.toX == lastOpp.fromX && a.toY == lastOpp.fromY) {
+                    scoreA -= 400; // mała kara za cofanie ruchu przeciwnika
+                }
+                if (b.fromX == lastOpp.toX && b.fromY == lastOpp.toY && b.toX == lastOpp.fromX && b.toY == lastOpp.fromY) {
+                    scoreB -= 400;
+                }
             }
 
             return scoreA > scoreB;
@@ -2227,6 +2312,18 @@ public:
                 bool isMateB = isCheckB && getAllPossibleMoves(currentPlayer).empty();
                 undoMove(stateB);
                 scoreB += isMateB ? 999999 : (isCheckB ? 800 : 0);
+
+                // Preferuj ruchy inne niż ostatni ruch przeciwnika (nie odtwarzaj tych samych sekwencji!)
+                if (!moveHistory.empty()) {
+                    const Move& lastOpp = moveHistory.back();
+                    if (a.fromX == lastOpp.toX && a.fromY == lastOpp.toY && a.toX == lastOpp.fromX && a.toY == lastOpp.fromY) {
+                        scoreA -= 400; // mała kara za cofanie ruchu przeciwnika
+                    }
+                    if (b.fromX == lastOpp.toX && b.fromY == lastOpp.toY && b.toX == lastOpp.fromX && b.toY == lastOpp.fromY) {
+                        scoreB -= 400;
+                    }
+                }
+
                 return scoreA > scoreB;
             });
 
